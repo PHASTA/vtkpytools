@@ -50,6 +50,10 @@ def calcReynoldsStresses(stsbar_array, velbar_array, conservative_stresses=False
     conservative_stresses : bool
         Whether the stsbar file used the
         'Conservative Stresses' option (default:False)
+
+    Returns
+    -------
+    numpy.ndarray
     """
     if conservative_stresses:
         warnings.warn("Calculation of Reynolds Stresses when using the 'Conservative Stress' option for stsbar has not been validated.")
@@ -137,7 +141,8 @@ def compute_vorticity(dataset, scalars, vorticity_name='vorticity'):
     alg.Update()
     return pv.filters._get_output(alg)
 
-def sampleDataBlockProfile(dataBlock, line_walldists, pointid=None, cutterobj=None):
+def sampleDataBlockProfile(dataBlock, line_walldists, pointid=None,
+                           cutterobj=None) -> pv.PolyData:
     """Sample data block over a wall-normal profile
 
     Given a dataBlock containing a 'grid' and 'wall' block, this will return a
@@ -156,11 +161,17 @@ def sampleDataBlockProfile(dataBlock, line_walldists, pointid=None, cutterobj=No
         MultiBlock containing the 'grid' and 'wall' objects
     line_walldists : numpy.ndarray
         The locations normal to the wall that should be sampled and returned.
-        Expected to be in order.
+        Locations are expected to be in order.
     pointid : int, optional
-        Index of the point in 'wall' where the profile should be taken. (default: None)
+        Index of the point in 'wall' where the profile should be taken.
+        (default: None)
     cutterobj : vtk.vtkPlane, optional
-        VTK object that defines the profile location via intersection with the 'wall'
+        VTK object that defines the profile location via intersection with the
+        'wall'
+
+    Returns
+    -------
+    pyvista.PolyData
     """
 
     wall = dataBlock['wall']
