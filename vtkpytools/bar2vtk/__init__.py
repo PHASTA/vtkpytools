@@ -1,4 +1,4 @@
-from .core import form2DGrid, linesFromPoints, computeEdgeNormals, getGeometricSeries
+from .core import form2DGrid, computeEdgeNormals, getGeometricSeries
 from .data import (binaryVelbar, binaryStsbar, calcCf, calcReynoldsStresses,
                    calcBoundaryLayerStats, compute_vorticity, sampleDataBlockProfile)
 

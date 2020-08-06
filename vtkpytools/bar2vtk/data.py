@@ -177,7 +177,7 @@ def sampleDataBlockProfile(dataBlock, line_walldists, pointid=None, cutterobj=No
         sample_points = line_walldists[:, None] * wallnormal
         sample_points += wall.points[pointid]
 
-        sample_line = linesFromPoints(sample_points)
+        sample_line = pv.lines_from_points(sample_points)
         sample_line = sample_line.sample(dataBlock['grid'])
         sample_line['WallDistance'] = line_walldists
 
@@ -197,7 +197,7 @@ def sampleDataBlockProfile(dataBlock, line_walldists, pointid=None, cutterobj=No
         sample_points = line_walldists[:, None] * wallnormal
         sample_points += cutterout.points
 
-        sample_line = linesFromPoints(sample_points)
+        sample_line = pv.lines_from_points(sample_points)
         sample_line = sample_line.sample(dataBlock['grid'])
         sample_line['WallDistance'] = line_walldists
 

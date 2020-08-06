@@ -109,16 +109,6 @@ def computeEdgeNormals(edges, domain_point) -> pv.PolyData:
     edges.cell_arrays['Normals'] = normals
     return edges
 
-def linesFromPoints(points):
-    """Given an array of points, make a line set"""
-    poly = pv.PolyData()
-    poly.points = points
-    cells = np.full((len(points)-1, 3), 2, dtype=np.int_)
-    cells[:, 1] = np.arange(0, len(points)-1, dtype=np.int_)
-    cells[:, 2] = np.arange(1, len(points), dtype=np.int_)
-    poly.lines = cells
-    return poly
-
 def getGeometricSeries(maxval, minval, growthrate, include_zero=True):
     """Return geometric series based on inputs.
 
