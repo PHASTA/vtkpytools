@@ -112,11 +112,11 @@ def calcCf(wall, Uref, nu=1.5E-5, rho=1, plane_normal='XY'):
     tangentialVelocityGradient = np.einsum('ijk,ik->ij', grad_tensors, wall['Normals'])
 
     # Tw = np.einsum('ij,ij->i', tangential_e_ij, streamwise_vectors)*mu
-    if plane_normal == 'XY'.lower():
+    if plane_normal.lower() == 'xy':
         plane_normal = np.array([0,0,1])
-    elif plane_normal == 'XZ'.lower():
+    elif plane_normal.lower() == 'xz':
         plane_normal = np.array([0,1,0])
-    elif plane_normal == 'YZ'.lower():
+    elif plane_normal.lower() == 'yz':
         plane_normal = np.array([1,0,0])
 
         # Project tangential gradient vector onto the chosen plane using n x (T_w x n)
@@ -237,7 +237,7 @@ def calcBoundaryLayerStats(dataBlock, line_walldists, dpercent=False,
         nudge_size = 0
         while not sampled:
             # Sample domain
-            sample_line = linesFromPoints(sample_points)
+            sample_line = pv.lines_from_points(sample_points)
             sample_line = sample_line.sample(dataBlock['grid'])
 
             # Nudge sample_line back and forth until line is within domain
