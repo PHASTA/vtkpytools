@@ -4,24 +4,30 @@ from pathlib import Path
 from scipy.spatial import Delaunay
 import pyvista as pv
 
-def form2DGrid(coordsPath, connectivityPath=None, connectivityZeroBase=False) -> pv.UnstructuredGrid:
+def form2DGrid(coords_path, connectivity_path=None,
+               connectivity_zero_base=False) -> pv.UnstructuredGrid:
     """Create 2D VTK UnstructuredGrid from coordinates and connectivity
 
-    Args:
-        coordsPath (Path): Path to coordinates file.
-        connectivityPath (Path): Path to connectivity file. If not given, will create
-            mesh from the points given in the coordsPath file. (default: None)
+    Parameters
+    ----------
+    coords_path : Path
+        Path to coordinates file.
+    connectivity_path : Path, optional
+        Path to connectivity file. If not given, will create mesh from the
+        points given in the coords_path file. (default: None)
+    connectivity_zero_base : bool, optional
+        If the given connectivity file indexs the mesh points starting at 0.
+        Only used if connectivity_path is given.
 
-        connectivityZeroBase (bool): If the given connectivity file indexs the
-            mesh points starting at 0. Only used if connectivityPath is given.
-
-    Returns:
+    Returns
+    -------
+    pv.UnstructuredGrid
         Pyvista UnstructuredGrid object with the grid loaded.
     """
-    coords = np.loadtxt(coordsPath)
+    coords = np.loadtxtcoordsPath
     coords[:,2] = np.zeros(coords.shape[0])
 
-    if not connectivityPath:
+    if not connectivity_path:
         # Generate mesh from points
         print('Generating Mesh...')
         mesh = Delaunay(coords[:,0:2])
@@ -37,7 +43,7 @@ def form2DGrid(coordsPath, connectivityPath=None, connectivityZeroBase=False) ->
             # vtk.VTK_TRIANGLE is just an integer
         cell_types = np.ones(nCells, dtype=np.int64) * vtk.VTK_TRIANGLE
     else:
-        cnnFile = np.loadtxt(connectivityPath, dtype=np.int64)
+        cnnFile = np.loadtxt(connectivity_path, dtype=np.int64)
         connectivity = cnnFile[:,1:]
         nCells = connectivity.shape[0]
         nPnts = connectivity.shape[1]
@@ -72,12 +78,14 @@ def computeEdgeNormals(edges, domain_point) -> pv.PolyData:
 
         n = n * dot(n, insideVector / |insideVector|)
 
-    Args:
-        edges (pyvista.PolyData): The edges from which the normals should be
-            calculated.
-        domain_point (np.ndarray): A point inside the domain that determines
-            whether the calculated normal vector points inside or outside the
-            domain.
+    Parameters
+    ----------
+    edges : pyvista.PolyData
+        The edges from which the normals should be calculated.
+    domain_point : np.ndarray
+        A point inside the domain that determines whether the calculated normal
+        vector points inside or outside the domain.
+
     """
     normals = np.zeros((edges.n_cells, 3))
     i = 0
@@ -111,7 +119,7 @@ def linesFromPoints(points):
     poly.lines = cells
     return poly
 
-def getGeometricSeries(maxval, minval, growthrate, includeZero=True):
+def getGeometricSeries(maxval, minval, growthrate, include_zero=True):
     """Return geometric series based on inputs.
 
     A geometric series is defined as one where each successive point is the
@@ -121,17 +129,22 @@ def getGeometricSeries(maxval, minval, growthrate, includeZero=True):
 
     where r is the growth rate of the series.
 
-    Args:
-        maxval (float): Maximum value that should be reached by series
-        minval (float): Initial value of the series
-        growthrate (float): Growth rate of the series
-        includeZero (bool): Whether the series should insert a 0.0 at the
-            beginning of the series
+    Parameters
+    ----------
+    maxval : float
+        Maximum value that should be reached by series
+    minval : float
+        Initial value of the series
+    growthrate : float
+        Growth rate of the series
+    include_zero : bool, optional
+        Whether the series should insert a 0.0 at the beginning of the series
+        (default is True)
     """
     npoints = np.log(maxval/minval)/np.log(growthrate)
     npoints = np.ceil(npoints)
 
     geomseries = np.geomspace(minval, maxval, npoints)
-    if includeZero: geomseries = np.insert(geomseries, 0, 0.0)
+    if include_zero: geomseries = np.insert(geomseries, 0, 0.0)
 
     return geomseries
