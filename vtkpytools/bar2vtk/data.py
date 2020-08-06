@@ -74,6 +74,26 @@ def calcReynoldsStresses(stsbar_array, velbar_array, conservative_stresses=False
     return ReyStrTensor
 
 def calcCf(wall, Uref, nu=1.5E-5, rho=1, plane_normal='XY'):
+    """Calcuate the Coefficient of Friction of the wall
+
+    Parameters
+    ----------
+    wall : pv.UnstructuredGrid
+        Wall cells and points
+    Uref : float
+        Reference velocity
+    nu : float, optional
+        Kinematic viscosity (default: 1.5E-5)
+    rho : float, optional
+        Density (default: 1)
+    plane_normal : {'XY', 'XZ', 'YZ'}, optional
+        Plane that the wall lies on. The shear stress vector will be projected
+        onto it. (default: 'XY')
+
+    Returns
+    -------
+    numpy.ndarray
+    """
 
     if 'Normals' not in wall.array_names:
         raise RuntimeError('The wall object must have a "Normals" field present.')
