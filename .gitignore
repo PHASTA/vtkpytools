@@ -3,3 +3,7 @@ dist/
 *.egg*
 __pycache__/
 *.py[cod]
+
+
+# example result files
+example/result/*
