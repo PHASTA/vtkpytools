@@ -138,12 +138,37 @@ def compute_vorticity(dataset, scalars, vorticity_name='vorticity'):
     return pv.filters._get_output(alg)
 
 def sampleDataBlockProfile(dataBlock, line_walldists, pointid=None, cutterobj=None):
-    "Return a sampled line at the wall point index"
+    """Sample data block over a wall-normal profile
+
+    Given a dataBlock containing a 'grid' and 'wall' block, this will return a
+    PolyData object that samples 'grid' at the wall distances specified in
+    line_walldists. This assumes that the 'wall' block has a field named
+    'Normals' containing the wall-normal vectors.
+
+    The location of the profile is defined by either the index of a point in
+    the 'wall' block or by specifying a vtk implicit function (such as
+    vtk.vtkPlane) that intersects the 'wall' object. The latter uses the
+    vtk.vtkCutter filter to determine the intersection.
+
+    Parameters
+    ----------
+    dataBlock : pv.MultiBlock
+        MultiBlock containing the 'grid' and 'wall' objects
+    line_walldists : numpy.ndarray
+        The locations normal to the wall that should be sampled and returned.
+        Expected to be in order.
+    pointid : int, optional
+        Index of the point in 'wall' where the profile should be taken. (default: None)
+    cutterobj : vtk.vtkPlane, optional
+        VTK object that defines the profile location via intersection with the 'wall'
+    """
 
     wall = dataBlock['wall']
 
     if 'Normals' not in wall.array_names:
         raise RuntimeError('The wall object must have a "Normals" field present.')
+    if not pointid and not cutterobj:
+        raise RuntimeError('Must provide either pointid or cutterobj.')
 
     if pointid:
         wallnormal = wall['Normals'][pointid,:]
