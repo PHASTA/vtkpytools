@@ -24,7 +24,7 @@ def form2DGrid(coords_path, connectivity_path=None,
     pv.UnstructuredGrid
         Pyvista UnstructuredGrid object with the grid loaded.
     """
-    coords = np.loadtxtcoordsPath
+    coords = np.loadtxt(coords_path)
     coords[:,2] = np.zeros(coords.shape[0])
 
     if not connectivity_path:
