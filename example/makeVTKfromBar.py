@@ -21,6 +21,7 @@ stsbarPath = Path('data/stsbar.10000.1')
     # New file names/paths
 vtuPath = Path('result/exampleMesh-10000.vtu')
 vtmPath = Path('result/exampleMesh-10000.vtm')
+
 #%% ---- Building the VTK Grid object ----
     # Create the 2D grid from the given information
 grid = vpt.form2DGrid(coordsPath, connectivity_path=connecPath, connectivity_zero_base=True)
@@ -34,7 +35,8 @@ featedges = vpt.computeEdgeNormals(featedges, np.array([-0.42, 0.2, 0]))
 
     # Extract out cells based on their normals, may need adjustment per case
 wall = featedges.extract_cells(np.arange(featedges.n_cells)[featedges['Normals'][:,1] > 0.8])
-wall = wall.cell_data_to_point_data()
+wall = vpt.unstructuredToPoly(wall.cell_data_to_point_data())
+wall = vpt.orderPolyDataLine(wall)
 
 # At this point you have two objects:
 #   - grid: 2D grid object for the mesh
