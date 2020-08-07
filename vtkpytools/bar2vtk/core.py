@@ -4,49 +4,44 @@ from pathlib import Path
 from scipy.spatial import Delaunay
 import pyvista as pv
 
-def form2DGrid(coords_path, connectivity_path=None,
-               connectivity_zero_base=False) -> pv.UnstructuredGrid:
+def form2DGrid(coords_array, connectivity_array=None) -> pv.UnstructuredGrid:
     """Create 2D VTK UnstructuredGrid from coordinates and connectivity
 
     Parameters
     ----------
-    coords_path : Path
-        Path to coordinates file.
-    connectivity_path : Path, optional
-        Path to connectivity file. If not given, will create mesh from the
-        points given in the coords_path file. (default: None)
-    connectivity_zero_base : bool, optional
-        If the given connectivity file indexs the mesh points starting at 0.
-        Only used if connectivity_path is given.
+    coords_array : numpy.ndarray
+        Coordinates of the points. Shape in (nPoints,2).
+    connectivity_array : numpy.ndarray, optional
+        Connectivity array of the cells. Shape in (nCells,PointsPerCell). The
+        index of points should start from 0. The type of cell will be inferred
+        based on the number of points per cell.  If not given, will create mesh
+        from the points given in the coords_path file. (default: None)
 
     Returns
     -------
     pv.UnstructuredGrid
         Pyvista UnstructuredGrid object with the grid loaded.
     """
-    coords = np.loadtxt(coords_path)
-    coords[:,2] = np.zeros(coords.shape[0])
+    coords_array = np.hstack([coords_array, np.zeros((coords_array.shape[0], 1)) ])
 
-    if not connectivity_path:
+    if type(connectivity_array) == type(None):
         # Generate mesh from points
         print('Generating Mesh...')
-        mesh = Delaunay(coords[:,0:2])
+        mesh = Delaunay(coords_array[:,0:2])
         print('Finished Meshing!')
 
         nCells = mesh.simplices.shape[0]
             # mesh.simplices contains the connectivity array
-        connectivity = mesh.simplices
-        connectivity = np.hstack((np.ones((nCells,1), dtype=np.int64)*3, connectivity))
+        connectivity_array = mesh.simplices
+        connectivity_array = np.hstack((np.ones((nCells,1), dtype=np.int64)*3, connectivity_array))
 
         offsets = np.arange(3, mesh.simplices.size+4, 3, dtype=np.int64)
 
             # vtk.VTK_TRIANGLE is just an integer
         cell_types = np.ones(nCells, dtype=np.int64) * vtk.VTK_TRIANGLE
     else:
-        cnnFile = np.loadtxt(connectivity_path, dtype=np.int64)
-        connectivity = cnnFile[:,1:]
-        nCells = connectivity.shape[0]
-        nPnts = connectivity.shape[1]
+        nCells = connectivity_array.shape[0]
+        nPnts = connectivity_array.shape[1]
         if nPnts == 3:
             cell_type = vtk.VTK_TRIANGLE # ==int(5)
         elif nPnts == 4:
@@ -54,11 +49,11 @@ def form2DGrid(coords_path, connectivity_path=None,
         else:
             raise ValueError(f'This connectivity file has the wrong number of points. Must be either 3 or 4 points per cell, this has {nPnts}')
 
-        connectivity = np.hstack((np.ones((nCells,1), dtype=np.int64)*nPnts, connectivity))
-        offsets = np.arange(0, connectivity.size+1, nPnts+1, dtype=np.int64)
+        connectivity_array = np.hstack((np.ones((nCells,1), dtype=np.int64)*nPnts, connectivity_array))
+        offsets = np.arange(0, connectivity_array.size+1, nPnts+1, dtype=np.int64)
         cell_types = np.ones(nCells, dtype=np.int64) * cell_type
 
-    grid = pv.UnstructuredGrid(offsets, connectivity, cell_types, coords)
+    grid = pv.UnstructuredGrid(offsets, connectivity_array, cell_types, coords_array)
 
     return grid
 
