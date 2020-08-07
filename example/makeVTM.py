@@ -19,8 +19,14 @@ connecPath = Path('meshFiles/TruncBump2d_Squares.cnn')
 vtmPath = Path('result/exampleMesh.vtm')
 
 #%% ---- Building the VTK Grid object ----
+coords = np.loadtxt(coordsPath)
+coords = coords[:,:2]
+
+connec = np.loadtxt(connecPath, dtype=np.int64)
+connec = connec[:,1:]
+
     # Create the 2D grid from the given information
-grid = vpt.form2DGrid(coordsPath, connectivity_path=connecPath, connectivity_zero_base=True)
+grid = vpt.form2DGrid(coords, connectivity_array=connec)
 
     # Get wall edge from grid
 featedges = grid.extract_feature_edges(boundary_edges=True, non_manifold_edges=False,
