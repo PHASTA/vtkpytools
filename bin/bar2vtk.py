@@ -8,7 +8,13 @@ the mesh.
 
 Examples:
 \tbar2vtk.py blankDataBlock.vtm BinaryBars 10000
-\tbar2vtk.py blankDataBlock.vtm BinaryBars 10000-20000 --ts0=500"""
+\tbar2vtk.py blankDataBlock.vtm BinaryBars 10000-20000 --ts0=500
+
+Time Step Windows:
+------------------
+Submit a timestep argument with a '-' in it to request a timestep window be
+generated. This requires a '--ts0' argument be provided as well for calculating
+the windowed value."""
 
 ## Parsing script input
 class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter, argparse.RawDescriptionHelpFormatter):
