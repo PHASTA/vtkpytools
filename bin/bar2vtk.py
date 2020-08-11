@@ -88,9 +88,9 @@ if '-' in args.timestep:
             else:
                 raise RuntimeError(f'Could not find file matching "stsbar*{timestep}*" in {args.barfiledir}')
 
-    print(f'Using data files:\n\t{velbarPaths[0][0]}\t{velbarPaths[0][0]}')
+    print(f'Using data files:\n\t{velbarPaths[0]}\t{velbarPaths[1]}')
     if not args.velonly:
-        print(f'\t{stsbarPaths[1][0]}\t{stsbarPaths[1][0]}')
+        print(f'\t{stsbarPaths[0]}\t{stsbarPaths[1]}')
 
     velbarArrays = []; stsbarArrays = []
     for i in range(2):
@@ -103,6 +103,7 @@ if '-' in args.timestep:
     if not args.velonly:
         stsbarArray = (stsbarArrays[1]*(timesteps[1] - args.ts0) -
                        stsbarArrays[0]*(timesteps[0] - args.ts0)) / (timesteps[1] - timesteps[0])
+    print('Finished computing timestep window')
 else:
 # Don't create timestep windows
     velbarPath = list(args.barfiledir.glob(f'velbar*{args.timestep}*'))
