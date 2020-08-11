@@ -49,3 +49,26 @@ def orderPolyDataLine(polydata):
     strip.SetInputData(polydata)
     strip.Update()
     return pv.wrap(strip.GetOutput())
+
+def vCutter(input_data, cut_function):
+    """Returns the intersection of input_data and cut_function
+
+    Wrapper around vtkCutter filter. Output contains interpolated data from
+    input_data to the intersection location. Note that cell data is NOT passed
+    through.
+
+    Parameters
+    ----------
+    input_data : pyvista.PointSet
+        Data that will be cut by the cut_function. Intersected point will have
+        data interpolated.
+    cut_function : vtk.vtkImplicitFunction
+        VTK function that cuts the input_data. Most common example would be
+        vtkPlane.
+    """
+
+    cutter = vtk.vtkCutter()
+    cutter.SetCutFunction(cut_function)
+    cutter.SetInputData(input_data)
+    cutter.Update()
+    return pv.wrap(cutter.GetOutput())
