@@ -48,7 +48,7 @@ import sys
 if args.vptpath:
     vptPath = args.vptpath
 else:
-    vptPath = Path(__file__).absolute().parent.parent
+    vptPath = Path(__file__).resolve().parent.parent
 sys.path.insert(0, vptPath.as_posix())
 
 import vtkpytools as vpt
