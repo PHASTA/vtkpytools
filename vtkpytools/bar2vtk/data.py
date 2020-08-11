@@ -200,7 +200,7 @@ def sampleDataBlockProfile(dataBlock, line_walldists, pointid=None,
         cutterout = pv.wrap(cutter.GetOutput())
 
         if cutterout.points.shape[0] != 1:
-            raise RuntimeError('vtkCutter resulted in %d points instead of 1.'.format(
+            raise RuntimeError('vtkCutter resulted in {:d} points instead of 1.'.format(
                 cutterout.points.shape[0]))
 
         wallnormal = cutterout['Normals']
