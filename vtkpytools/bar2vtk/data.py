@@ -1,6 +1,7 @@
 import numpy as np
 import vtk
 from .core import *
+from ..common import vCutter
 from scipy.io import FortranFile
 import warnings
 
@@ -193,14 +194,9 @@ def sampleDataBlockProfile(dataBlock, line_walldists, pointid=None,
         sample_line['WallDistance'] = line_walldists
 
     if cutterobj:
-        cutter = vtk.vtkCutter()
-        cutter.SetCutFunction(cutterobj)
-        cutter.SetInputData(wall)
-        cutter.Update()
-        cutterout = pv.wrap(cutter.GetOutput())
-
+        cutterout = vCutter(wall, cutterobj)
         if cutterout.points.shape[0] != 1:
-            raise RuntimeError('vtkCutter resulted in {:d} points instead of 1.'.format(
+            raise RuntimeError('vCutter resulted in {:d} points instead of 1.'.format(
                 cutterout.points.shape[0]))
 
         wallnormal = cutterout['Normals']
