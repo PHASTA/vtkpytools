@@ -53,7 +53,7 @@ sys.path.insert(0, vptPath.as_posix())
 
 import vtkpytools as vpt
 
-## Process/check script arguments
+## ---- Process/check script arguments
 assert args.vtkfile.is_file()
 assert args.barfiledir.is_dir()
 
@@ -62,8 +62,9 @@ if args.new_file_prefix:
 else:
     vtmPath = Path(os.path.splitext(args.vtkfile)[0] + '_' + args.timestep + '.vtm')
 
-## Loading data arrays
+## ---- Loading data arrays
 if '-' in args.timestep:
+# Create timestep windows
     if args.ts0 == -1:
         raise RuntimeError("Starting timestep of bar field averaging required (--ts0)")
     # raise NotImplementedError("Haven't implemented creating time windows yet")
@@ -103,6 +104,7 @@ if '-' in args.timestep:
         stsbarArray = (stsbarArrays[1]*(timesteps[1] - args.ts0) -
                        stsbarArrays[0]*(timesteps[0] - args.ts0)) / (timesteps[1] - timesteps[0])
 else:
+# Don't create timestep windows
     velbarPath = list(args.barfiledir.glob(f'velbar*{args.timestep}*'))
     if len(velbarPath) > 0:
         assert velbarPath[0].is_file()
@@ -117,13 +119,15 @@ else:
             assert stsbarPath[0].is_file()
         else:
             raise RuntimeError(f'Could not find file matching "stsbar*{timestep}*" in {args.barfiledir}')
-        print(f'\n\t{stsbarPath[0]}')
+        print(f'\t{stsbarPath[0]}')
         stsbarArray = vpt.binaryStsbar(stsbarPath[0])
 
+## ---- Load DataBlock
 dataBlock = pv.MultiBlock(args.vtkfile.as_posix())
 grid = dataBlock['grid']
 wall = dataBlock['wall']
 
+## ---- Load *bar data into dataBlock
 grid['Pressure'] = velbarArray[:,0]
 grid['Velocity'] = velbarArray[:,1:4]
 
@@ -132,15 +136,14 @@ if not args.velonly:
     grid['ReynoldsStress'] = ReyStrTensor
     grid['TurbulentEnergyKinetic'] = (1/3)*(np.sum(ReyStrTensor[:,0:3], axis=1))
 
-print('compute_gradient')
 grid = grid.compute_gradient(scalars='Velocity')
-print('compute_vorticity')
 grid = vpt.compute_vorticity(grid, scalars='Velocity')
 
-## Copy data from grid to wall object
+## ---- Copy data from grid to wall object
 wall = wall.sample(grid)
 
 dataBlock['grid'] = grid
 dataBlock['wall'] = wall
-print(f'Saving dataBlock file to: {vtmPath}')
+print(f'Saving dataBlock file to: {vtmPath}', end='')
 dataBlock.save(vtmPath)
+print('\tDone!')
