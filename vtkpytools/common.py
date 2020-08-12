@@ -72,3 +72,24 @@ def vCutter(input_data, cut_function):
     cutter.SetInputData(input_data)
     cutter.Update()
     return pv.wrap(cutter.GetOutput())
+
+class Profile(pv.PolyData):
+    """Wrap of pyvista.PolyData that includes walldata attribute
+
+    Use case is for storage of wall local data (boundary layer metrics, Cf
+    etc.) with profiles that correspond to that wall local data.
+
+    """
+    walldata = {}
+
+    def setWallDataFromPolyDataPoint(self, PolyPoint):
+        """Set walldata attribute from PolyData Point
+
+        Primary use case is the using the output of vtkpytools.vCutter()
+        """
+        if PolyPoint.n_points != 1:
+            raise RuntimeError('Profile should only have 1 wallpoint, {:d} given'.format(
+                                                                    PolyPoint.n_points))
+        self.walldata = dict(PolyPoint.point_arrays)
+        self.walldata['Point'] = PolyPoint.points
+
