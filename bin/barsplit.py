@@ -14,7 +14,7 @@ class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter, argparse.RawDescri
 
 parser = argparse.ArgumentParser(description=Description,
                                  formatter_class=CustomFormatter,
-                                 prog='bar2vtk')
+                                 prog='barsplit')
 parser.add_argument('barfiledir', help='Path to *bar file directory', type=Path)
 parser.add_argument('timestep', help='Timestep range', type=str)
 parser.add_argument('outpath', help='Path of the ouput files', type=Path)
