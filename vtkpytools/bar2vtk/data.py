@@ -1,7 +1,7 @@
 import numpy as np
 import vtk
 from .core import *
-from ..common import vCutter
+from ..common import vCutter, Profile
 from scipy.io import FortranFile
 import warnings
 
@@ -143,7 +143,7 @@ def compute_vorticity(dataset, scalars, vorticity_name='vorticity'):
     return pv.filters._get_output(alg)
 
 def sampleDataBlockProfile(dataBlock, line_walldists, pointid=None,
-                           cutterobj=None) -> pv.PolyData:
+                           cutterobj=None) -> Profile:
     """Sample data block over a wall-normal profile
 
     Given a dataBlock containing a 'grid' and 'wall' block, this will return a
@@ -172,7 +172,7 @@ def sampleDataBlockProfile(dataBlock, line_walldists, pointid=None,
 
     Returns
     -------
-    pyvista.PolyData
+    vtkpytools.Profile
     """
 
     wall = dataBlock['wall']
@@ -207,6 +207,9 @@ def sampleDataBlockProfile(dataBlock, line_walldists, pointid=None,
         sample_line = pv.lines_from_points(sample_points)
         sample_line = sample_line.sample(dataBlock['grid'])
         sample_line['WallDistance'] = line_walldists
+
+        sample_line = Profile(sample_line)
+        sample_line.setWallDataFromPolyDataPoint(cutterout)
 
     return sample_line
 
