@@ -71,22 +71,24 @@ def calcReynoldsStresses(stsbar_array, velbar_array, conservative_stresses=False
 
     return ReyStrTensor
 
-def calcCf(wall, Uref, nu=1.5E-5, rho=1, plane_normal='XY'):
-    """Calcuate the Coefficient of Friction of the wall
+def calcWallShearGradient(wall):
+    """Calcuate the shear gradient at the wall
+
+    Wall shear gradient is defined as the gradient of the velocity tangent to
+    the wall in the wall-normal direction. To calculate wall shear stress,
+    multiply by mu.
+
+    If the wall normal unit vector is taken to be n and the
+    gradient of velocity is e_ij, then the wall shear gradient is:
+
+        (delta_ik - n_k n_i) n_j e_kj
+
+    where n_j e_kj is the "traction" vector at the wall.
 
     Parameters
     ----------
     wall : pv.UnstructuredGrid
         Wall cells and points
-    Uref : float
-        Reference velocity
-    nu : float, optional
-        Kinematic viscosity (default: 1.5E-5)
-    rho : float, optional
-        Density (default: 1)
-    plane_normal : {'XY', 'XZ', 'YZ'}, optional
-        Plane that the wall lies on. The shear stress vector will be projected
-        onto it. (default: 'XY')
 
     Returns
     -------
@@ -95,17 +97,48 @@ def calcCf(wall, Uref, nu=1.5E-5, rho=1, plane_normal='XY'):
 
     if 'Normals' not in wall.array_names:
         raise RuntimeError('The wall object must have a "Normals" field present.')
-    mu = nu * rho
-    # streamwise_vectors = np.array((wall['Normals'][:,1],
-    #                                 -wall['Normals'][:,0],
-    #                                 np.zeros_like(wall['Normals'][:,0]))).T
+    if 'gradient' not in wall.array_names:
+        raise RuntimeError('The wall object must have a "gradient" field present.')
 
         # reshape the gradient such that is is an array of rank 2 tensors
     grad_tensors = wall['gradient'].reshape(wall['gradient'].shape[0], 3, 3)
-        # Compute gradient vector tangential to the wall
-    tangentialVelocityGradient = np.einsum('ijk,ik->ij', grad_tensors, wall['Normals'])
 
-    # Tw = np.einsum('ij,ij->i', tangential_e_ij, streamwise_vectors)*mu
+    traction_vector = np.einsum('pkj,pj->pk', grad_tensors, wall['Normals'])
+    del_ik_nkni = np.identity(3) - np.einsum('pk,pi->pki', wall['Normals'], wall['Normals'])
+    wall_shear_gradient = np.einsum('pik,pk->pi', del_ik_nkni, traction_vector)
+
+    return wall_shear_gradient
+
+def calcCf(wall, Uref, nu, rho, plane_normal='XY'):
+    """Calcuate the Coefficient of Friction of the wall
+
+    Uses vpt.calcWallShearGradient to get du/dn, then uses input values to
+    calculate Cf using:
+
+        C_f = T_w / (0.5 * rho * Uref^2)
+
+    Parameters
+    ----------
+    wall : pv.UnstructuredGrid
+        Wall cells and points
+    Uref : float
+        Reference velocity
+    nu : float, optional
+        Kinematic viscosity
+    rho : float, optional
+        Density
+    plane_normal : {'XY', 'XZ', 'YZ'}, optional
+        Plane that the wall lies on. The shear stress vector will be projected
+        onto it. (default: 'XY')
+
+    Returns
+    -------
+    numpy.ndarray
+    """
+    mu = nu * rho
+
+    wall_shear_gradient = calcWallShearGradient(wall)
+
     if plane_normal.lower() == 'xy':
         plane_normal = np.array([0,0,1])
     elif plane_normal.lower() == 'xz':
@@ -115,7 +148,7 @@ def calcCf(wall, Uref, nu=1.5E-5, rho=1, plane_normal='XY'):
 
         # Project tangential gradient vector onto the chosen plane using n x (T_w x n)
     Tw = mu * np.cross(plane_normal[None,:],
-                       np.cross(tangentialVelocityGradient, plane_normal[None,:]))
+                       np.cross(wall_shear_gradient, plane_normal[None,:]))
     Tw = np.linalg.norm(Tw, axis=1)
 
     Cf = Tw / (0.5*rho*Uref**2)
