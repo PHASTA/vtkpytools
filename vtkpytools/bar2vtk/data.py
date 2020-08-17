@@ -83,7 +83,9 @@ def calcWallShearGradient(wall):
 
         (delta_ik - n_k n_i) n_j e_kj
 
-    where n_j e_kj is the "traction" vector at the wall.
+    where n_j e_kj is the "traction" vector at the wall. See post at
+    https://www.jameswright.xyz/post/wall_shear_gradient_from_velocity_gradient/
+    for derivation of method.
 
     Parameters
     ----------
