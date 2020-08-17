@@ -1,6 +1,7 @@
 import vtk
 import pyvista as pv
 import numpy as np
+from scipy.io import FortranFile
 
 def getGeometricSeries(maxval, minval, growthrate, include_zero=True):
     """Return geometric series based on inputs.
@@ -93,3 +94,20 @@ class Profile(pv.PolyData):
         self.walldata = dict(PolyPoint.point_arrays)
         self.walldata['Point'] = PolyPoint.points
 
+def readBinaryArray(path, ncols):
+    """Get array from Fortran binary file.
+
+    Parameters
+    ----------
+
+    path : Path
+        Path to Fortran binary array.
+    ncols : uint
+        Number of columns in the binary file.
+    """
+    array = FortranFile(path, 'r')
+    array = array.read_reals()
+    nrows = int(array.shape[0]/ncols)
+    array = np.reshape(array, (nrows, ncols))
+
+    return array

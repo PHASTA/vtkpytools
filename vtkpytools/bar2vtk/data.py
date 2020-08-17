@@ -1,7 +1,7 @@
 import numpy as np
 import vtk
 from .core import *
-from ..common import vCutter, Profile
+from ..common import vCutter, Profile, readBinaryArray
 from scipy.io import FortranFile
 import warnings
 
@@ -16,12 +16,7 @@ def binaryVelbar(velbar_path, velbar_ncols=5):
     velbar_ncols : uint
         Number of columns in the binary file. (default: 5)
     """
-    velbar = FortranFile(velbar_path, 'r')
-    velbarArray = velbar.read_reals()
-    velbar_nrows = int(velbarArray.shape[0]/velbar_ncols)
-    velbarArray = np.reshape(velbarArray, (velbar_nrows, velbar_ncols))
-
-    return velbarArray
+    return readBinaryArray(velbar_path, velbar_ncols)
 
 def binaryStsbar(stsbar_path, stsbar_ncols=6):
     """Get stsbar array from binary file.
@@ -33,11 +28,7 @@ def binaryStsbar(stsbar_path, stsbar_ncols=6):
     stsbar_ncols : uint
         Number of columns in the binary file. (default: 6)
     """
-    stsbar = FortranFile(stsbar_path, 'r')
-    stsbar_array = stsbar.read_reals()
-    stsbar_nrows = int(stsbar_array.shape[0]/stsbar_ncols)
-    stsbar_array = np.reshape(stsbar_array, (stsbar_nrows, stsbar_ncols))
-    return stsbar_array
+    return readBinaryArray(stsbar_path, stsbar_ncols)
 
 def calcReynoldsStresses(stsbar_array, velbar_array, conservative_stresses=False):
     """Calculate Reynolds Stresses from velbar and stsbar data.
