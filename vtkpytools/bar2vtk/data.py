@@ -5,30 +5,32 @@ from ..common import vCutter, Profile, readBinaryArray
 from scipy.io import FortranFile
 import warnings
 
-def binaryVelbar(velbar_path, velbar_ncols=5):
+def binaryVelbar(velbar_path):
     """Get velbar array from binary file.
+
+    Wrapping around vpt.readBinaryArray. Assumes that the number of columns in
+    the array is 5.
 
     Parameters
     ----------
 
     velbar_path : Path
         Path to velbar file.
-    velbar_ncols : uint
-        Number of columns in the binary file. (default: 5)
     """
-    return readBinaryArray(velbar_path, velbar_ncols)
+    return readBinaryArray(velbar_path, 5)
 
-def binaryStsbar(stsbar_path, stsbar_ncols=6):
+def binaryStsbar(stsbar_path):
     """Get stsbar array from binary file.
+
+    Wrapping around vpt.readBinaryArray. Assumes that the number of columns in
+    the array is 6.
 
     Parameters
     ----------
     stsbar_path : Path
         Path to stsbar file.
-    stsbar_ncols : uint
-        Number of columns in the binary file. (default: 6)
     """
-    return readBinaryArray(stsbar_path, stsbar_ncols)
+    return readBinaryArray(stsbar_path, 6)
 
 def calcReynoldsStresses(stsbar_array, velbar_array, conservative_stresses=False):
     """Calculate Reynolds Stresses from velbar and stsbar data.
