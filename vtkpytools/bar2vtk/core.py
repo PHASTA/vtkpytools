@@ -47,7 +47,8 @@ def form2DGrid(coords_array, connectivity_array=None) -> pv.UnstructuredGrid:
         elif nPnts == 4:
             cell_type = vtk.VTK_QUAD # ==int(9)
         else:
-            raise ValueError(f'This connectivity file has the wrong number of points. Must be either 3 or 4 points per cell, this has {nPnts}')
+            raise ValueError('This connectivity file has the wrong number of points.'
+                             ' Must be either 3 or 4 points per cell, this has {}'.format(nPnts))
 
         connectivity_array = np.hstack((np.ones((nCells,1), dtype=np.int64)*nPnts, connectivity_array))
         offsets = np.arange(0, connectivity_array.size+1, nPnts+1, dtype=np.int64)
