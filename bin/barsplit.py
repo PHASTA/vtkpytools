@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import argparse
 from pathlib import Path
 import os
@@ -19,7 +19,8 @@ parser.add_argument('barfiledir', help='Path to *bar file directory', type=Path)
 parser.add_argument('timestep', help='Timestep range', type=str)
 parser.add_argument('outpath', help='Path of the ouput files', type=Path)
 parser.add_argument('--ts0','--bar-average-start',
-                    help='Starting timestep of the averaging process. Only used for generating windows.',
+                    help='Starting timestep of the averaging process. Only used '
+                         'for generating windows.',
                     type=int, default=-1)
 parser.add_argument('--velonly', help='Only process velocity', action='store_true')
 parser.add_argument('--vptpath', help='Custom path to vtkpytools package', type=Path)
@@ -47,27 +48,29 @@ if args.ts0 == -1:
     raise RuntimeError("Starting timestep of bar field averaging required (--ts0)")
 
 timesteps = [int(x) for x in args.timestep.split('-')]
-print(f'Creating timewindow between {timesteps[0]} and {timesteps[1]}')
+print('Creating timewindow between {} and {}'.format(timesteps[0], timesteps[1]))
 velbarPaths = []; stsbarPaths = []
 for timestep in timesteps:
-    velbarPath = list(args.barfiledir.glob(f'velbar*{timestep}*'))
+    velbarPath = list(args.barfiledir.glob('velbar*{}*'.format(timestep)))
     if len(velbarPath) > 0:
         assert velbarPath[0].is_file()
         velbarPaths.append(velbarPath[0])
     else:
-        raise RuntimeError(f'Could not find file matching "velbar*{timestep}*" in {args.barfiledir}')
+        raise RuntimeError('Could not find file matching'
+                           ' "velbar*{}*" in {}'.format(timestep, args.barfiledir))
 
     if not args.velonly:
-        stsbarPath = list(args.barfiledir.glob(f'stsbar*{timestep}*'))
+        stsbarPath = list(args.barfiledir.glob('stsbar*{}*'.format(timestep)))
         if len(stsbarPath) > 0:
             assert stsbarPath[0].is_file()
             stsbarPaths.append(stsbarPath[0])
         else:
-            raise RuntimeError(f'Could not find file matching "stsbar*{timestep}*" in {args.barfiledir}')
+            raise RuntimeError('Could not find file matching'
+                               ' "stsbar*{}*" in {}'.format(timestep, args.barfiledir))
 
-print(f'Using data files:\n\t{velbarPaths[0]}\t{velbarPaths[1]}')
+print('Using data files:\n\t{}\t{}'.format(velbarPaths[0], velbarPaths[1]))
 if not args.velonly:
-    print(f'\t{stsbarPaths[0]}\t{stsbarPaths[1]}')
+    print('\t{}\t{}'.format(stsbarPaths[0], stsbarPaths[1]))
 
 velbarArrays = []; stsbarArrays = []
 for i in range(2):

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import argparse
 from pathlib import Path
 import os
@@ -29,7 +29,8 @@ parser.add_argument('vtkfile', help='MultiBlock VTK file that contains grid and 
 parser.add_argument('barfiledir', help='Path to *bar file directory', type=Path)
 parser.add_argument('timestep', help='Timestep of the barfiles. May be range', type=str)
 parser.add_argument('--ts0','--bar-average-start',
-                    help='Starting timestep of the averaging process. Only used for generating windows.',
+                    help='Starting timestep of the averaging process. Only used'
+                         ' for generating windows.',
                     type=int, default=-1)
 parser.add_argument('-f','--new-file-prefix',
                     help='Prefix for the new file. Will have timestep appended.',
@@ -70,27 +71,29 @@ if '-' in args.timestep:
     # raise NotImplementedError("Haven't implemented creating time windows yet")
 
     timesteps = [int(x) for x in args.timestep.split('-')]
-    print(f'Creating timewindow between {timesteps[0]} and {timesteps[1]}')
+    print('Creating timewindow between {} and {}'.format(timesteps[0], timesteps[1]))
     velbarPaths = []; stsbarPaths = []
     for timestep in timesteps:
-        velbarPath = list(args.barfiledir.glob(f'velbar*{timestep}*'))
+        velbarPath = list(args.barfiledir.glob('velbar*{}*'.format(timestep)))
         if len(velbarPath) > 0:
             assert velbarPath[0].is_file()
             velbarPaths.append(velbarPath[0])
         else:
-            raise RuntimeError(f'Could not find file matching "velbar*{timestep}*" in {args.barfiledir}')
+            raise RuntimeError('Could not find file matching'
+                               '"velbar*{}*" in {}'.format(timestep, args.barfiledir))
 
         if not args.velonly:
-            stsbarPath = list(args.barfiledir.glob(f'stsbar*{timestep}*'))
+            stsbarPath = list(args.barfiledir.glob('stsbar*{}*'.format(timestep)))
             if len(stsbarPath) > 0:
                 assert stsbarPath[0].is_file()
                 stsbarPaths.append(stsbarPath[0])
             else:
-                raise RuntimeError(f'Could not find file matching "stsbar*{timestep}*" in {args.barfiledir}')
+                raise RuntimeError('Could not find file matching'
+                                   '"stsbar*{}*" in {}'.format(timestep, args.barfiledir))
 
-    print(f'Using data files:\n\t{velbarPaths[0]}\t{velbarPaths[1]}')
+    print('Using data files:\n\t{}\t{}'.format(velbarPaths[0], velbarPaths[1]))
     if not args.velonly:
-        print(f'\t{stsbarPaths[0]}\t{stsbarPaths[1]}')
+        print('\t{}\t{}'.format(stsbarPaths[0], stsbarPaths[1]))
 
     velbarArrays = []; stsbarArrays = []
     for i in range(2):
@@ -106,21 +109,23 @@ if '-' in args.timestep:
     print('Finished computing timestep window')
 else:
 # Don't create timestep windows
-    velbarPath = list(args.barfiledir.glob(f'velbar*{args.timestep}*'))
+    velbarPath = list(args.barfiledir.glob('velbar*{}*'.format(args.timestep)))
     if len(velbarPath) > 0:
         assert velbarPath[0].is_file()
     else:
-        raise RuntimeError(f'Could not find file matching "velbar*{timestep}*" in {args.barfiledir}')
-    print(f'Using data files:\n\t{velbarPath[0]}')
+        raise RuntimeError('Could not find file matching'
+                           '"velbar*{}*" in {}'.format(timestep, args.barfiledir))
+    print('Using data files:\n\t{}'.format(velbarPath[0]))
     velbarArray = vpt.binaryVelbar(velbarPath[0])
 
     if not args.velonly:
-        stsbarPath = list(args.barfiledir.glob(f'stsbar*{args.timestep}*'))
+        stsbarPath = list(args.barfiledir.glob('stsbar*{}*'.format(args.timestep)))
         if len(stsbarPath) > 0:
             assert stsbarPath[0].is_file()
         else:
-            raise RuntimeError(f'Could not find file matching "stsbar*{timestep}*" in {args.barfiledir}')
-        print(f'\t{stsbarPath[0]}')
+            raise RuntimeError('Could not find file matching'
+                               '"stsbar*{}*" in {}'.format(timestep, args.barfiledir))
+        print('\t{}'.format(stsbarPath[0]))
         stsbarArray = vpt.binaryStsbar(stsbarPath[0])
 
 ## ---- Load DataBlock
@@ -145,6 +150,6 @@ wall = wall.sample(grid)
 
 dataBlock['grid'] = grid
 dataBlock['wall'] = wall
-print(f'Saving dataBlock file to: {vtmPath}', end='')
+print('Saving dataBlock file to: {}'.format(vtmPath), end='')
 dataBlock.save(vtmPath)
 print('\tDone!')
