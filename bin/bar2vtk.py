@@ -35,6 +35,8 @@ parser.add_argument('--ts0','--bar-average-start',
 parser.add_argument('-f','--new-file-prefix',
                     help='Prefix for the new file. Will have timestep appended.',
                     type=str)
+parser.add_argument('--outpath', help='Custom path for the output VTM file.'
+                                      ' vtkfile path used if not given', type=Path)
 parser.add_argument('--velonly', help='Only process velocity', action='store_true')
 parser.add_argument('--vptpath', help='Custom path to vtkpytools package', type=Path)
 
@@ -59,9 +61,15 @@ assert args.vtkfile.is_file()
 assert args.barfiledir.is_dir()
 
 if args.new_file_prefix:
-    vtmPath = Path(args.new_file_prefix + '_' + args.timestep + '.vtm')
+    vtmName = Path(args.new_file_prefix + '_' + args.timestep + '.vtm')
 else:
-    vtmPath = Path(os.path.splitext(args.vtkfile)[0] + '_' + args.timestep + '.vtm')
+    vtmName = Path(os.path.splitext(args.vtkfile.name)[0] + '_' + args.timestep + '.vtm')
+
+if args.outpath:
+    vtmPath = args.outpath / vtmName
+else:
+    vtmPath = args.vtkfile.parent / vtmName
+
 
 ## ---- Loading data arrays
 if '-' in args.timestep:
