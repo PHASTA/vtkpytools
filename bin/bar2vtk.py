@@ -37,7 +37,8 @@ parser.add_argument('-f','--new-file-prefix',
                     type=str)
 parser.add_argument('--outpath', help='Custom path for the output VTM file.'
                                       ' vtkfile path used if not given', type=Path)
-parser.add_argument('--velonly', help='Only process velocity', action='store_true')
+parser.add_argument('--velonly', help='Only process velbar file', action='store_true')
+parser.add_argument('--debug', help='Load raw stsbar data into VTM', action='store_true')
 parser.add_argument('--vptpath', help='Custom path to vtkpytools package', type=Path)
 
 args = parser.parse_args()
@@ -59,6 +60,9 @@ import vtkpytools as vpt
 ## ---- Process/check script arguments
 assert args.vtkfile.is_file()
 assert args.barfiledir.is_dir()
+
+if args.debug and args.velonly:
+    raise RuntimeError('--velonly counteracts the effect of --debug. Choose one or the other.')
 
 if args.new_file_prefix:
     vtmName = Path(args.new_file_prefix + '_' + args.timestep + '.vtm')
@@ -149,6 +153,9 @@ if not args.velonly:
     ReyStrTensor = vpt.calcReynoldsStresses(stsbarArray, velbarArray)
     grid['ReynoldsStress'] = ReyStrTensor
     grid['TurbulentEnergyKinetic'] = (1/3)*(np.sum(ReyStrTensor[:,0:3], axis=1))
+
+if args.debug and not args.velonly:
+    grid['stsbar'] = stsbarArray
 
 grid = grid.compute_gradient(scalars='Velocity')
 grid = vpt.compute_vorticity(grid, scalars='Velocity')
