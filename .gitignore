@@ -3,6 +3,7 @@ dist/
 *.egg*
 __pycache__/
 *.py[cod]
+_scripts
 
 
 # example result files
