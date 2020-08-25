@@ -6,4 +6,4 @@ __pycache__/
 
 
 # example result files
-example/result/*
+example/bar2vtk/result/*
