@@ -9,5 +9,6 @@ with open('vtkpytools/__init__.py') as f:
 setuptools.setup(
     name = "vtkpytools",
     version = version,
-    packages = setuptools.find_packages()
+    packages = setuptools.find_packages(),
+    scripts = ['./bin/bar2vtk.py', './bin/barsplit.py']
 )
