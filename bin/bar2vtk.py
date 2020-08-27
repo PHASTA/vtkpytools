@@ -10,6 +10,10 @@ Examples:
 \tbar2vtk.py blankDataBlock.vtm BinaryBars 10000
 \tbar2vtk.py blankDataBlock.vtm BinaryBars 10000-20000 --ts0=500
 
+The name of the output file will be the same as the blank VTM file suffixed
+with the timestep requested. So in the first example above, the output would be
+"blankDataBlock_10000.vtm".
+
 Time Step Windows:
 ------------------
 Submit a timestep argument with a '-' in it to request a timestep window be
