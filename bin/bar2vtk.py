@@ -40,6 +40,7 @@ parser.add_argument('--outpath', help='Custom path for the output VTM file.'
 parser.add_argument('--velonly', help='Only process velbar file', action='store_true')
 parser.add_argument('--debug', help='Load raw stsbar data into VTM', action='store_true')
 parser.add_argument('--vptpath', help='Custom path to vtkpytools package', type=Path)
+parser.add_argument('-a', '--ascii', help='Read *bar files as ASCII', action='store_true')
 
 args = parser.parse_args()
 
@@ -73,6 +74,13 @@ if args.outpath:
     vtmPath = args.outpath / vtmName
 else:
     vtmPath = args.vtkfile.parent / vtmName
+
+if args.ascii:
+    velbarReader = np.loadtxt
+    stsbarReader = np.loadtxt
+else:
+    velbarReader = vpt.binaryVelbar
+    stsbarReader = vpt.binaryStsbar
 
 
 ## ---- Loading data arrays
@@ -109,9 +117,9 @@ if '-' in args.timestep:
 
     velbarArrays = []; stsbarArrays = []
     for i in range(2):
-        velbarArrays.append(vpt.binaryVelbar(velbarPaths[i]))
-        if not args.velonly:
-            stsbarArrays.append(vpt.binaryStsbar(stsbarPaths[i]))
+            velbarArrays.append(velbarReader(velbarPaths[i]))
+            if not args.velonly:
+                stsbarArrays.append(stsbarReader(stsbarPaths[i]))
 
     velbarArray = (velbarArrays[1]*(timesteps[1] - args.ts0) -
                    velbarArrays[0]*(timesteps[0] - args.ts0)) / (timesteps[1] - timesteps[0])
@@ -128,7 +136,7 @@ else:
         raise RuntimeError('Could not find file matching'
                            '"velbar*{}*" in {}'.format(timestep, args.barfiledir))
     print('Using data files:\n\t{}'.format(velbarPath[0]))
-    velbarArray = vpt.binaryVelbar(velbarPath[0])
+    velbarArray = velbarReader(velbarPath[0])
 
     if not args.velonly:
         stsbarPath = list(args.barfiledir.glob('stsbar*{}*'.format(args.timestep)))
@@ -138,7 +146,7 @@ else:
             raise RuntimeError('Could not find file matching'
                                '"stsbar*{}*" in {}'.format(timestep, args.barfiledir))
         print('\t{}'.format(stsbarPath[0]))
-        stsbarArray = vpt.binaryStsbar(stsbarPath[0])
+        stsbarArray = stsbarReader(stsbarPath[0])
 
 ## ---- Load DataBlock
 dataBlock = pv.MultiBlock(args.vtkfile.as_posix())
