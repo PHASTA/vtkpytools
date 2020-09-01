@@ -181,7 +181,7 @@ def compute_vorticity(dataset, scalars, vorticity_name='vorticity'):
     return pv.filters._get_output(alg)
 
 def sampleDataBlockProfile(dataBlock, line_walldists, pointid=None,
-                           cutterobj=None) -> Profile:
+                           cutterobj=None, normal=None) -> Profile:
     """Sample data block over a wall-normal profile
 
     Given a dataBlock containing a 'grid' and 'wall' block, this will return a
@@ -207,6 +207,8 @@ def sampleDataBlockProfile(dataBlock, line_walldists, pointid=None,
     cutterobj : vtk.vtkPlane, optional
         VTK object that defines the profile location via intersection with the
         'wall'
+    normal : numpy.ndarray
+        If given, use this vector as the wall normal.
 
     Returns
     -------
@@ -221,7 +223,11 @@ def sampleDataBlockProfile(dataBlock, line_walldists, pointid=None,
         raise RuntimeError('Must provide either pointid or cutterobj.')
 
     if pointid:
-        wallnormal = wall['Normals'][pointid,:]
+        wallnormal = wall['Normals'][pointid,:] if normal is None else normal
+        # if normal is None:
+        #     wallnormal = wall['Normals'][pointid,:]
+        # else:
+        #     wallnormal = normal
         wallnormal = np.tile(wallnormal, (len(line_walldists),1))
 
         sample_points = line_walldists[:, None] * wallnormal
@@ -237,7 +243,11 @@ def sampleDataBlockProfile(dataBlock, line_walldists, pointid=None,
             raise RuntimeError('vCutter resulted in {:d} points instead of 1.'.format(
                 cutterout.points.shape[0]))
 
-        wallnormal = cutterout['Normals']
+        wallnormal = cutterout['Normals'] if normal is None else normal
+        # if normal is None:
+        #     wallnormal = cutterout['Normals']
+        # else:
+        #     wallnormal = normal
 
         sample_points = line_walldists[:, None] * wallnormal
         sample_points += cutterout.points
