@@ -12,7 +12,7 @@ sys.path.insert(0, '../')
 import vtkpytools as vpt
 
 # ---- File inputs ----
-vtmPath = Path('result/exampleMesh-10000.vtm')
+vtmPath = Path('result/exampleMesh_10000.vtm')
 
 # Reading in data
 dataBlock = pv.MultiBlock(vtmPath.as_posix())
