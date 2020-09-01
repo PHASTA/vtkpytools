@@ -1,4 +1,4 @@
-from .bar2vtk import *
+from .barfiletools import *
 from .common import (getGeometricSeries, unstructuredToPoly, orderPolyDataLine,
                      vCutter, Profile, globFile, rotateTensor, makeRotationTensor,
                      symmetric2FullTensor, full2SymmetricTensor)
