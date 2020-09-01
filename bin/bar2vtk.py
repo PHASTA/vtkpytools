@@ -121,9 +121,9 @@ if '-' in args.timestep:
 
     velbarArrays = []; stsbarArrays = []
     for i in range(2):
-            velbarArrays.append(velbarReader(velbarPaths[i]))
-            if not args.velonly:
-                stsbarArrays.append(stsbarReader(stsbarPaths[i]))
+        velbarArrays.append(velbarReader(velbarPaths[i]))
+        if not args.velonly:
+            stsbarArrays.append(stsbarReader(stsbarPaths[i]))
 
     velbarArray = (velbarArrays[1]*(timesteps[1] - args.ts0) -
                    velbarArrays[0]*(timesteps[0] - args.ts0)) / (timesteps[1] - timesteps[0])
