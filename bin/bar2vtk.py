@@ -74,31 +74,23 @@ if args.new_file_prefix:
 else:
     vtmName = Path(os.path.splitext(args.vtkfile.name)[0] + '_' + args.timestep + '.vtm')
 
-if args.outpath:
-    vtmPath = args.outpath / vtmName
-else:
-    vtmPath = args.vtkfile.parent / vtmName
+vtmPath = (args.outpath if args.outpath else args.vtkfile.parent) / vtmName
 
-if args.ascii:
-    velbarReader = np.loadtxt
-    stsbarReader = np.loadtxt
-else:
-    velbarReader = vpt.binaryVelbar
-    stsbarReader = vpt.binaryStsbar
-
+velbarReader = np.loadtxt if args.ascii else vpt.binaryVelbar
+stsbarReader = np.loadtxt if args.ascii else vpt.binaryStsbar
 
 ## ---- Loading data arrays
 if '-' in args.timestep:
 # Create timestep windows
     if args.ts0 == -1:
         raise RuntimeError("Starting timestep of bar field averaging required (--ts0)")
-    # raise NotImplementedError("Haven't implemented creating time windows yet")
 
     timesteps = [int(x) for x in args.timestep.split('-')]
     print('Creating timewindow between {} and {}'.format(timesteps[0], timesteps[1]))
     velbarPaths = []; stsbarPaths = []
     for timestep in timesteps:
         velbarPaths.append(vpt.globFile('velbar*{}*'.format(timestep), args.barfiledir))
+
         if not args.velonly:
             stsbarPaths.append(vpt.globFile('stsbar*{}*'.format(timestep), args.barfiledir))
 
