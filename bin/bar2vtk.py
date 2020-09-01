@@ -98,22 +98,9 @@ if '-' in args.timestep:
     print('Creating timewindow between {} and {}'.format(timesteps[0], timesteps[1]))
     velbarPaths = []; stsbarPaths = []
     for timestep in timesteps:
-        velbarPath = list(args.barfiledir.glob('velbar*{}*'.format(timestep)))
-        if len(velbarPath) > 0:
-            assert velbarPath[0].is_file()
-            velbarPaths.append(velbarPath[0])
-        else:
-            raise RuntimeError('Could not find file matching'
-                               '"velbar*{}*" in {}'.format(timestep, args.barfiledir))
-
+        velbarPaths.append(vpt.globFile('velbar*{}*'.format(timestep), args.barfiledir))
         if not args.velonly:
-            stsbarPath = list(args.barfiledir.glob('stsbar*{}*'.format(timestep)))
-            if len(stsbarPath) > 0:
-                assert stsbarPath[0].is_file()
-                stsbarPaths.append(stsbarPath[0])
-            else:
-                raise RuntimeError('Could not find file matching'
-                                   '"stsbar*{}*" in {}'.format(timestep, args.barfiledir))
+            stsbarPaths.append(vpt.globFile('stsbar*{}*'.format(timestep), args.barfiledir))
 
     print('Using data files:\n\t{}\t{}'.format(velbarPaths[0], velbarPaths[1]))
     if not args.velonly:
@@ -132,25 +119,14 @@ if '-' in args.timestep:
                        stsbarArrays[0]*(timesteps[0] - args.ts0)) / (timesteps[1] - timesteps[0])
     print('Finished computing timestep window')
 else:
-# Don't create timestep windows
-    velbarPath = list(args.barfiledir.glob('velbar*{}*'.format(args.timestep)))
-    if len(velbarPath) > 0:
-        assert velbarPath[0].is_file()
-    else:
-        raise RuntimeError('Could not find file matching'
-                           '"velbar*{}*" in {}'.format(timestep, args.barfiledir))
-    print('Using data files:\n\t{}'.format(velbarPath[0]))
-    velbarArray = velbarReader(velbarPath[0])
+    velbarPath = (vpt.globFile('velbar*{}*'.format(args.timestep), args.barfiledir))
+    print('Using data files:\n\t{}'.format(velbarPath))
+    velbarArray = velbarReader(velbarPath)
 
     if not args.velonly:
-        stsbarPath = list(args.barfiledir.glob('stsbar*{}*'.format(args.timestep)))
-        if len(stsbarPath) > 0:
-            assert stsbarPath[0].is_file()
-        else:
-            raise RuntimeError('Could not find file matching'
-                               '"stsbar*{}*" in {}'.format(timestep, args.barfiledir))
-        print('\t{}'.format(stsbarPath[0]))
-        stsbarArray = stsbarReader(stsbarPath[0])
+        stsbarPath = (vpt.globFile('stsbar*{}*'.format(args.timestep), args.barfiledir))
+        print('\t{}'.format(stsbarPath))
+        stsbarArray = stsbarReader(stsbarPath)
 
 ## ---- Load DataBlock
 dataBlock = pv.MultiBlock(args.vtkfile.as_posix())
