@@ -144,15 +144,24 @@ def calcCf(wall, Uref, nu, rho, plane_normal='XY'):
 
     if plane_normal.lower() == 'xy':
         plane_normal = np.array([0,0,1])
+        streamwise_vectors = np.array([wall['Normals'][:,1],
+                                       -wall['Normals'][:,0],
+                                       np.zeros_like(-wall['Normals'][:,0])]).T
     elif plane_normal.lower() == 'xz':
         plane_normal = np.array([0,1,0])
+        streamwise_vectors = np.array([wall['Normals'][:,2],
+                                       np.zeros_like(-wall['Normals'][:,0]),
+                                       -wall['Normals'][:,0]]).T
     elif plane_normal.lower() == 'yz':
         plane_normal = np.array([1,0,0])
+        streamwise_vectors = np.array([wall['Normals'][:,2],
+                                       np.zeros_like(-wall['Normals'][:,0]),
+                                       -wall['Normals'][:,0]]).T
 
         # Project tangential gradient vector onto the chosen plane using n x (T_w x n)
     Tw = mu * np.cross(plane_normal[None,:],
                        np.cross(wall_shear_gradient, plane_normal[None,:]))
-    Tw = np.linalg.norm(Tw, axis=1)
+    Tw = np.einsum('ej,ej->e', streamwise_vectors, Tw)
 
     Cf = Tw / (0.5*rho*Uref**2)
     return Cf
