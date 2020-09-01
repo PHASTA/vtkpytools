@@ -2,6 +2,7 @@ import vtk
 import pyvista as pv
 import numpy as np
 from scipy.io import FortranFile
+from pathlib import Path
 
 def getGeometricSeries(maxval, minval, growthrate, include_zero=True):
     """Return geometric series based on inputs.
@@ -111,3 +112,27 @@ def readBinaryArray(path, ncols):
     array = np.reshape(array, (nrows, ncols))
 
     return array
+
+def globFile(globstring, path: Path) -> Path:
+    """ Glob for one file in directory, then return.
+
+    If it finds more than one file matching the globstring, it will error out.
+
+    Parameters
+    ----------
+    globstring : str
+        String used to glob for file
+    path : Path
+        Path where file should be searched for
+    """
+    globlist = list(path.glob(globstring))
+    if len(globlist) == 1:
+        assert globlist[0].is_file()
+        return globlist[0]
+    elif len(globlist) > 1:
+        raise RuntimeError('Found multiple files matching'
+                           '"{}" in {}:\n\t{}'.format(globstring, path,
+                                                  '\n\t'.join([x.as_posix() for x in globlist])))
+    else:
+        raise RuntimeError('Could not find file matching'
+                            '"{}" in {}'.format(globstring, path))
