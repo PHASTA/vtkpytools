@@ -50,7 +50,8 @@ def calcReynoldsStresses(stsbar_array, velbar_array, conservative_stresses=False
     numpy.ndarray
     """
     if conservative_stresses:
-        warnings.warn("Calculation of Reynolds Stresses when using the 'Conservative Stress' option for stsbar has not been validated.")
+        warnings.warn("Calculation of Reynolds Stresses when using the "
+                      "'Conservative Stress' option for stsbar has not been validated.")
         ReyStrTensor = np.empty((stsbar_array.shape[0], 6))
         ReyStrTensor[:,0] = stsbar_array[:,3] - stsbar_array[:,0]**2
         ReyStrTensor[:,1] = stsbar_array[:,4] - stsbar_array[:,1]**2
