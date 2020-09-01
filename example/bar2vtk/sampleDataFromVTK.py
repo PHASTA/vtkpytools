@@ -18,11 +18,13 @@ vtmPath = Path('result/exampleMesh-10000.vtm')
 dataBlock = pv.MultiBlock(vtmPath.as_posix())
 
 # ---- Calculating Cf profile
-
+Uref = 16.4
+nu = 1.5E-5
+rho = 1
     # Save Cf values to numpy array
-Cf = vpt.calcCf(dataBlock['wall'], Uref=16.4)
+Cf = vpt.calcCf(dataBlock['wall'], Uref=Uref, nu=nu, rho=rho)
     # Or save them directly to the wall
-dataBlock['wall']['Cf'] = vpt.calcCf(dataBlock['wall'], Uref=16.4)
+dataBlock['wall']['Cf'] = vpt.calcCf(dataBlock['wall'], Uref=Uref, nu=nu, rho=rho)
 
 # ---- Extracting Profiles from dataBlock files
 
@@ -31,7 +33,7 @@ dataBlock['wall']['Cf'] = vpt.calcCf(dataBlock['wall'], Uref=16.4)
 line_height = 0.1
 line_growthrate = 1.05
 line_initpoint = 2E-6
-line_walldists = vpt.getGeometricSeries(0.1, 1.02, 2E-6)
+line_walldists = vpt.getGeometricSeries(line_height, line_initpoint, line_growthrate)
 
 ## Extract profiles by pointid, using the closest wall point to a given location
 example_profile = vpt.sampleDataBlockProfile(dataBlock, line_walldists,
