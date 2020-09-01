@@ -32,6 +32,7 @@ def getGeometricSeries(maxval, minval, growthrate, include_zero=True):
     """
     npoints = np.log(maxval/minval)/np.log(growthrate)
     npoints = np.ceil(npoints)
+    npoints = int(npoints)
 
     geomseries = np.geomspace(minval, maxval, npoints)
     if include_zero: geomseries = np.insert(geomseries, 0, 0.0)
