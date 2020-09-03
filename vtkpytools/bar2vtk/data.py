@@ -1,7 +1,7 @@
 import numpy as np
 import vtk
 from .core import *
-from ..common import vCutter, Profile, readBinaryArray
+from ..common import *
 from scipy.io import FortranFile
 import warnings
 
@@ -252,3 +252,30 @@ def sampleDataBlockProfile(dataBlock, line_walldists, pointid=None,
         sample_line.setWallDataFromPolyDataPoint(cutterout)
 
     return sample_line
+
+def wallAlignRotationTensor(wallnormal, cart_normal, plane='xy') -> np.ndarray:
+    """Create rotation tensor for wall alligning quantities
+
+    For 2D xy plane and streamwise x, cart_normal should be the y unit vector.
+
+    Parameters
+    ----------
+    wallnormal : numpy.ndarray
+        The normal vector at the wall
+    cart_normal : numpy.ndarray
+        The Cartesian equivalent to the wall normal. If the wall were "flat",
+        this would be the wall normal vector.
+    plane : str
+        2D plane to rotate on, from 'xy', 'xz', 'yz'. (Default is 'xy')
+    """
+
+    if plane.lower() == 'xy':   rotation_axis = np.array([0, 0, 1])
+    elif plane.lower() == 'xz': rotation_axis = np.array([0, 1, 0])
+    elif plane.lower() == 'yz': rotation_axis = np.array([1, 0, 0])
+
+    theta = np.arccos(np.dot(wallnormal, cart_normal))
+    # Determine whether clockwise or counter-clockwise rotation
+    rotation_cross = np.cross(cart_normal, cart_normal - wallnormal)
+    if np.dot(rotation_cross, rotation_axis) < 0: theta *= -1
+
+    return makeRotationTensor(rotation_axis, theta)
