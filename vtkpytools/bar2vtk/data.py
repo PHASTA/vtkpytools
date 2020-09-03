@@ -224,10 +224,6 @@ def sampleDataBlockProfile(dataBlock, line_walldists, pointid=None,
 
     if pointid:
         wallnormal = wall['Normals'][pointid,:] if normal is None else normal
-        # if normal is None:
-        #     wallnormal = wall['Normals'][pointid,:]
-        # else:
-        #     wallnormal = normal
         wallnormal = np.tile(wallnormal, (len(line_walldists),1))
 
         sample_points = line_walldists[:, None] * wallnormal
@@ -244,10 +240,6 @@ def sampleDataBlockProfile(dataBlock, line_walldists, pointid=None,
                 cutterout.points.shape[0]))
 
         wallnormal = cutterout['Normals'] if normal is None else normal
-        # if normal is None:
-        #     wallnormal = cutterout['Normals']
-        # else:
-        #     wallnormal = normal
 
         sample_points = line_walldists[:, None] * wallnormal
         sample_points += cutterout.points
