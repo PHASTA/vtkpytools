@@ -4,7 +4,7 @@ import numpy as np
 from scipy.io import FortranFile
 from pathlib import Path
 
-def getGeometricSeries(maxval, minval, growthrate, include_zero=True):
+def getGeometricSeries(maxval, minval, growthrate, include_zero=True) -> np.ndarray:
     """Return geometric series based on inputs.
 
     A geometric series is defined as one where each successive point is the
@@ -96,7 +96,7 @@ class Profile(pv.PolyData):
         self.walldata = dict(PolyPoint.point_arrays)
         self.walldata['Point'] = PolyPoint.points
 
-def readBinaryArray(path, ncols):
+def readBinaryArray(path, ncols) -> np.ndarray:
     """Get array from Fortran binary file.
 
     Parameters

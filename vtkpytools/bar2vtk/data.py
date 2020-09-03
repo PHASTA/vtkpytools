@@ -5,7 +5,7 @@ from ..common import vCutter, Profile, readBinaryArray
 from scipy.io import FortranFile
 import warnings
 
-def binaryVelbar(velbar_path):
+def binaryVelbar(velbar_path) -> np.ndarray:
     """Get velbar array from binary file.
 
     Wrapping around vpt.readBinaryArray. Assumes that the number of columns in
@@ -19,7 +19,7 @@ def binaryVelbar(velbar_path):
     """
     return readBinaryArray(velbar_path, 5)
 
-def binaryStsbar(stsbar_path):
+def binaryStsbar(stsbar_path) -> np.ndarray:
     """Get stsbar array from binary file.
 
     Wrapping around vpt.readBinaryArray. Assumes that the number of columns in
@@ -32,7 +32,7 @@ def binaryStsbar(stsbar_path):
     """
     return readBinaryArray(stsbar_path, 6)
 
-def calcReynoldsStresses(stsbar_array, velbar_array, conservative_stresses=False):
+def calcReynoldsStresses(stsbar_array, velbar_array, conservative_stresses=False) -> np.ndarray:
     """Calculate Reynolds Stresses from velbar and stsbar data.
 
     Parameters
@@ -72,7 +72,7 @@ def calcReynoldsStresses(stsbar_array, velbar_array, conservative_stresses=False
 
     return ReyStrTensor
 
-def calcWallShearGradient(wall):
+def calcWallShearGradient(wall) -> np.ndarray:
     """Calcuate the shear gradient at the wall
 
     Wall shear gradient is defined as the gradient of the velocity tangent to
@@ -112,7 +112,7 @@ def calcWallShearGradient(wall):
 
     return wall_shear_gradient
 
-def calcCf(wall, Uref, nu, rho, plane_normal='XY'):
+def calcCf(wall, Uref, nu, rho, plane_normal='XY') -> np.ndarray:
     """Calcuate the Coefficient of Friction of the wall
 
     Uses vpt.calcWallShearGradient to get du/dn, then uses input values to
