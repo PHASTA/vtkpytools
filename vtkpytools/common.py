@@ -137,3 +137,87 @@ def globFile(globstring, path: Path) -> Path:
     else:
         raise RuntimeError('Could not find file matching'
                             '"{}" in {}'.format(globstring, path))
+
+def symmetric2FullTensor(tensor_array) -> np.ndarray:
+    """ Turn (n, 6) shape array of tensor entries into (n, 3, 3)
+
+    Assumed that symmtetric entires are in XX YY ZZ XY XZ YZ order."""
+
+    shaped_tensors = np.array([
+                     tensor_array[:,0], tensor_array[:,3], tensor_array[:,4],
+                     tensor_array[:,3], tensor_array[:,1], tensor_array[:,5],
+                     tensor_array[:,4], tensor_array[:,5], tensor_array[:,2]
+                    ]).T
+    return shaped_tensors.reshape(shaped_tensors.shape[0], 3, 3)
+
+def full2SymmetricTensor(tensor_array) -> np.ndarray:
+    """ Turn (n, 3, 3) shape array of tensor entries into (n, 6)
+
+    Symmtetric entires are in XX YY ZZ XY XZ YZ order."""
+    return np.array([
+        tensor_array[:,0,0], tensor_array[:,1,1], tensor_array[:,2,2],
+        tensor_array[:,0,1], tensor_array[:,0,2], tensor_array[:,1,2]
+                    ]).T
+
+def makeRotationTensor(rotation_axis, theta) -> np.ndarray:
+    """Create rotation tensor from axis and angle of rotation
+
+    Uses Rodrigues' rotation formula
+
+    Parameters
+    ----------
+    rotation_axis : np.ndarray
+        Axis to rotate around
+    theta : float
+        The angle of rotation about the rotation_axis in radians
+    """
+
+    eijk = np.zeros((3, 3, 3))
+    eijk[0, 1, 2] = eijk[1, 2, 0] = eijk[2, 0, 1] = 1
+    eijk[0, 2, 1] = eijk[2, 1, 0] = eijk[1, 0, 2] = -1
+
+    rotation_tensor = np.cos(theta) * np.identity(3) + \
+                      (1-np.cos(theta)) * np.einsum('i,j->ij', rotation_axis, rotation_axis) + \
+                      -np.sin(theta) * np.einsum('ijk,k->ij', eijk, rotation_axis)
+
+    return rotation_tensor
+
+def rotateTensor(tensor_array, rotation_tensor) -> np.ndarray:
+    """Given rotation_tensor, rotate the "value" tensor
+
+    This will infer the type of tensor input (vector, symmetric/full tensor,
+    etc.) based on the shape of the array. tensor_array is assumed to be an
+    array of the n-rank tensors to be rotated.
+
+    Parameters
+    ----------
+    tensor_array : np.ndarray
+        Array of tensors to be rotated. The type of tensor input is inferred
+        from the shape of the array. Shape [n,3] is a vector, [n,6] is a
+        symmetric tensor, and [n,9] and [n,3,3] are full rank 2 tensors.
+    rotation_tensor : np.ndarray
+        The single rank 2 tensor defining rotation.
+    """
+
+    def rank2Rotation(rot_tensor, shaped_tensors):
+        return np.einsum('ki,lj,ekl->eij', rot_tensor, rot_tensor, shaped_tensors)
+
+    if tensor_array.shape[1] == 3 and tensor_array.ndim == 2:
+        return np.einsum('ij,ej->ei', rotation_tensor, tensor_array)
+
+    elif (tensor_array.ndim == 3 and
+          all(dimsize == 3 for dimsize in tensor_array.shape[1:]) ):
+        return rank2Rotation(rotation_tensor, tensor_array)
+
+    elif tensor_array.shape[1] == 6:
+        # Assumed to be symmetric tensor in XX YY ZZ XY XZ YZ order
+        shaped_tensors = symmetric2FullTensor(tensor_array)
+        rotated_tensor = rank2Rotation(rotation_tensor, shaped_tensors)
+        return full2SymmetricTensor(rotated_tensor)
+
+    elif tensor_array.shape[1] == 9:
+        shaped_tensors = tensor_array.reshape(tensor_array.shape[0], 3, 3)
+        return rank2Rotation(rotation_tensor, shaped_tensors).flatten()
+    else:
+        raise ValueError('Did not find appropriate method'
+                           ' for array of shape{}'.format(tensor_array.shape))
