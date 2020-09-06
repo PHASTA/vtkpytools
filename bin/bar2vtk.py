@@ -45,6 +45,8 @@ parser.add_argument('--velonly', help='Only process velbar file', action='store_
 parser.add_argument('--debug', help='Load raw stsbar data into VTM', action='store_true')
 parser.add_argument('--vptpath', help='Custom path to vtkpytools package', type=Path)
 parser.add_argument('-a', '--ascii', help='Read *bar files as ASCII', action='store_true')
+parser.add_argument('--velbar', help='Path to velbar file(s)', type=Path, nargs='+')
+parser.add_argument('--stsbar', help='Path to stsbar file(s)', type=Path, nargs='+')
 
 args = parser.parse_args()
 
@@ -69,6 +71,15 @@ assert args.barfiledir.is_dir()
 if args.debug and args.velonly:
     raise RuntimeError('--velonly counteracts the effect of --debug. Choose one or the other.')
 
+if isinstance(args.velbar, list) and len(args.velbar) > 2:
+    velbarStrings = '\n\t' + '\n\t'.join([x.as_posix() for x in args.velbar])
+    raise ValueError('--velbar can only contain two paths max.'
+                       ' The following were given:{}'.format(velbarStrings))
+if isinstance(args.stsbar, list) and len(args.stsbar) > 2:
+    stsbarStrings = '\n\t' + '\n\t'.join([x.as_posix() for x in args.stsbar])
+    raise ValueError('--stsbar can only contain two paths max.'
+                       ' The following were given:{}'.format(stsbarStrings))
+
 if args.new_file_prefix:
     vtmName = Path(args.new_file_prefix + '_' + args.timestep + '.vtm')
 else:
@@ -87,12 +98,16 @@ if '-' in args.timestep:
 
     timesteps = [int(x) for x in args.timestep.split('-')]
     print('Creating timewindow between {} and {}'.format(timesteps[0], timesteps[1]))
-    velbarPaths = []; stsbarPaths = []
-    for timestep in timesteps:
-        velbarPaths.append(vpt.globFile('velbar*.{}*'.format(timestep), args.barfiledir))
+    if not args.velbar:
+        velbarPaths = []; stsbarPaths = []
+        for timestep in timesteps:
+            velbarPaths.append(vpt.globFile('velbar*.{}*'.format(timestep), args.barfiledir))
 
-        if not args.velonly:
-            stsbarPaths.append(vpt.globFile('stsbar*.{}*'.format(timestep), args.barfiledir))
+            if not args.velonly:
+                stsbarPaths.append(vpt.globFile('stsbar*.{}*'.format(timestep), args.barfiledir))
+    else:
+        velbarPaths = args.velbar
+        stsbarPaths = args.stsbar
 
     print('Using data files:\n\t{}\t{}'.format(velbarPaths[0], velbarPaths[1]))
     if not args.velonly:
@@ -111,12 +126,14 @@ if '-' in args.timestep:
                        stsbarArrays[0]*(timesteps[0] - args.ts0)) / (timesteps[1] - timesteps[0])
     print('Finished computing timestep window')
 else:
-    velbarPath = (vpt.globFile('velbar*.{}*'.format(args.timestep), args.barfiledir))
+    velbarPath = args.velbar if args.velbar else \
+        (vpt.globFile('velbar*.{}*'.format(args.timestep), args.barfiledir))
     print('Using data files:\n\t{}'.format(velbarPath))
     velbarArray = velbarReader(velbarPath)
 
     if not args.velonly:
-        stsbarPath = (vpt.globFile('stsbar*.{}*'.format(args.timestep), args.barfiledir))
+        stsbarPath = args.stsbar if args.stsbar else \
+            (vpt.globFile('stsbar*.{}*'.format(args.timestep), args.barfiledir))
         print('\t{}'.format(stsbarPath))
         stsbarArray = stsbarReader(stsbarPath)
 
