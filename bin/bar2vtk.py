@@ -45,8 +45,8 @@ parser.add_argument('--velonly', help='Only process velbar file', action='store_
 parser.add_argument('--debug', help='Load raw stsbar data into VTM', action='store_true')
 parser.add_argument('--vptpath', help='Custom path to vtkpytools package', type=Path)
 parser.add_argument('-a', '--ascii', help='Read *bar files as ASCII', action='store_true')
-parser.add_argument('--velbar', help='Path to velbar file(s)', type=Path, nargs='+')
-parser.add_argument('--stsbar', help='Path to stsbar file(s)', type=Path, nargs='+')
+parser.add_argument('--velbar', help='Path to velbar file(s)', type=Path, nargs='+', default=[])
+parser.add_argument('--stsbar', help='Path to stsbar file(s)', type=Path, nargs='+', default=[])
 
 args = parser.parse_args()
 
@@ -72,13 +72,19 @@ if args.debug and args.velonly:
     raise RuntimeError('--velonly counteracts the effect of --debug. Choose one or the other.')
 
 if isinstance(args.velbar, list) and len(args.velbar) > 2:
+if len(args.velbar) > 2:
     velbarStrings = '\n\t' + '\n\t'.join([x.as_posix() for x in args.velbar])
     raise ValueError('--velbar can only contain two paths max.'
                        ' The following were given:{}'.format(velbarStrings))
-if isinstance(args.stsbar, list) and len(args.stsbar) > 2:
+if len(args.stsbar) > 2:
     stsbarStrings = '\n\t' + '\n\t'.join([x.as_posix() for x in args.stsbar])
     raise ValueError('--stsbar can only contain two paths max.'
                        ' The following were given:{}'.format(stsbarStrings))
+
+if len(args.stsbar) == 2 and not '-' in args.timestep:
+    raise ValueError('--stsbar was given two paths, but timestep was not given range.')
+if len(args.velbar) == 2 and not '-' in args.timestep:
+    raise ValueError('--stsbar was given two paths, but timestep was not given range.')
 
 if args.new_file_prefix:
     vtmName = Path(args.new_file_prefix + '_' + args.timestep + '.vtm')
