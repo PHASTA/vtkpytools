@@ -89,10 +89,10 @@ if '-' in args.timestep:
     print('Creating timewindow between {} and {}'.format(timesteps[0], timesteps[1]))
     velbarPaths = []; stsbarPaths = []
     for timestep in timesteps:
-        velbarPaths.append(vpt.globFile('velbar*{}*'.format(timestep), args.barfiledir))
+        velbarPaths.append(vpt.globFile('velbar*.{}*'.format(timestep), args.barfiledir))
 
         if not args.velonly:
-            stsbarPaths.append(vpt.globFile('stsbar*{}*'.format(timestep), args.barfiledir))
+            stsbarPaths.append(vpt.globFile('stsbar*.{}*'.format(timestep), args.barfiledir))
 
     print('Using data files:\n\t{}\t{}'.format(velbarPaths[0], velbarPaths[1]))
     if not args.velonly:
@@ -111,12 +111,12 @@ if '-' in args.timestep:
                        stsbarArrays[0]*(timesteps[0] - args.ts0)) / (timesteps[1] - timesteps[0])
     print('Finished computing timestep window')
 else:
-    velbarPath = (vpt.globFile('velbar*{}*'.format(args.timestep), args.barfiledir))
+    velbarPath = (vpt.globFile('velbar*.{}*'.format(args.timestep), args.barfiledir))
     print('Using data files:\n\t{}'.format(velbarPath))
     velbarArray = velbarReader(velbarPath)
 
     if not args.velonly:
-        stsbarPath = (vpt.globFile('stsbar*{}*'.format(args.timestep), args.barfiledir))
+        stsbarPath = (vpt.globFile('stsbar*.{}*'.format(args.timestep), args.barfiledir))
         print('\t{}'.format(stsbarPath))
         stsbarArray = stsbarReader(stsbarPath)
 
