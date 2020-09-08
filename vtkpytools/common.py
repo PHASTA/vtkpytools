@@ -200,7 +200,7 @@ def rotateTensor(tensor_array, rotation_tensor) -> np.ndarray:
     """
 
     def rank2Rotation(rot_tensor, shaped_tensors):
-        return np.einsum('ki,lj,ekl->eij', rot_tensor, rot_tensor, shaped_tensors)
+        return np.einsum('ik,ekl,jl->eij', rot_tensor, shaped_tensors, rot_tensor)
 
     if tensor_array.shape[1] == 3 and tensor_array.ndim == 2:
         return np.einsum('ij,ej->ei', rotation_tensor, tensor_array)
