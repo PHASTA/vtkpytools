@@ -71,20 +71,18 @@ assert args.barfiledir.is_dir()
 if args.debug and args.velonly:
     raise RuntimeError('--velonly counteracts the effect of --debug. Choose one or the other.')
 
-if isinstance(args.velbar, list) and len(args.velbar) > 2:
-if len(args.velbar) > 2:
-    velbarStrings = '\n\t' + '\n\t'.join([x.as_posix() for x in args.velbar])
-    raise ValueError('--velbar can only contain two paths max.'
-                       ' The following were given:{}'.format(velbarStrings))
-if len(args.stsbar) > 2:
-    stsbarStrings = '\n\t' + '\n\t'.join([x.as_posix() for x in args.stsbar])
-    raise ValueError('--stsbar can only contain two paths max.'
-                       ' The following were given:{}'.format(stsbarStrings))
+if not len(args.velbar) == len(args.stsbar):
+    raise ValueError('--velbar and --stsbar must be given same number of paths'
+                     ', given {} and {}, respectively'.format(len(args.velbar), len(args.stsbar)))
 
-if len(args.stsbar) == 2 and not '-' in args.timestep:
-    raise ValueError('--stsbar was given two paths, but timestep was not given range.')
-if len(args.velbar) == 2 and not '-' in args.timestep:
-    raise ValueError('--stsbar was given two paths, but timestep was not given range.')
+for flag, arg in {'--velbar':args.velbar, '--stsbar':args.stsbar}.items():
+    if len(arg) > 2:
+        pathStrings = '\n\t' + '\n\t'.join([x.as_posix() for x in arg])
+        raise ValueError('{} can only contain two paths max.'
+                        ' The following were given:{}'.format(flag, pathStrings))
+
+    if len(arg) == 2 and not '-' in args.timestep:
+        raise ValueError('{} was given two paths, but timestep was not given range.'.format(flag))
 
 if args.new_file_prefix:
     vtmName = Path(args.new_file_prefix + '_' + args.timestep + '.vtm')
