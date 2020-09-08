@@ -96,6 +96,13 @@ class Profile(pv.PolyData):
         self.walldata = dict(PolyPoint.point_arrays)
         self.walldata['Point'] = PolyPoint.points
 
+    def setWallDataFromPointID(self, wall, pointid):
+        """Set walldata attribute from point id of wall point """
+
+        for array_name in wall.array_names:
+            self.walldata[array_name] = wall[array_name][pointid]
+        self.walldata['Point'] = wall.points[pointid]
+
 def readBinaryArray(path, ncols) -> np.ndarray:
     """Get array from Fortran binary file.
 

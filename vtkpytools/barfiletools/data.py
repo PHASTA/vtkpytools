@@ -207,7 +207,7 @@ def sampleDataBlockProfile(dataBlock, line_walldists, pointid=None,
     cutterobj : vtk.vtkPlane, optional
         VTK object that defines the profile location via intersection with the
         'wall'
-    normal : numpy.ndarray
+    normal : numpy.ndarray, optional
         If given, use this vector as the wall normal.
 
     Returns
@@ -232,6 +232,9 @@ def sampleDataBlockProfile(dataBlock, line_walldists, pointid=None,
         sample_line = pv.lines_from_points(sample_points)
         sample_line = sample_line.sample(dataBlock['grid'])
         sample_line['WallDistance'] = line_walldists
+
+        sample_line = Profile(sample_line)
+        sample_line.setWallDataFromPointID(wall, pointid)
 
     if cutterobj:
         cutterout = vCutter(wall, cutterobj)
