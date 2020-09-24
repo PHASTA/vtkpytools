@@ -153,7 +153,7 @@ def symmetric2FullTensor(tensor_array) -> np.ndarray:
 def full2SymmetricTensor(tensor_array) -> np.ndarray:
     """ Turn (n, 3, 3) shape array of tensor entries into (n, 6)
 
-    Symmtetric entires are in XX YY ZZ XY XZ YZ order."""
+    Symmetric entires are in XX YY ZZ XY XZ YZ order."""
     return np.array([
         tensor_array[:,0,0], tensor_array[:,1,1], tensor_array[:,2,2],
         tensor_array[:,0,1], tensor_array[:,0,2], tensor_array[:,1,2]
