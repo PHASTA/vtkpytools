@@ -153,7 +153,7 @@ def symmetric2FullTensor(tensor_array) -> np.ndarray:
 def full2SymmetricTensor(tensor_array) -> np.ndarray:
     """ Turn (n, 3, 3) shape array of tensor entries into (n, 6)
 
-    Symmtetric entires are in XX YY ZZ XY XZ YZ order."""
+    Symmetric entires are in XX YY ZZ XY XZ YZ order."""
     return np.array([
         tensor_array[:,0,0], tensor_array[:,1,1], tensor_array[:,2,2],
         tensor_array[:,0,1], tensor_array[:,0,2], tensor_array[:,1,2]
@@ -221,3 +221,26 @@ def rotateTensor(tensor_array, rotation_tensor) -> np.ndarray:
     else:
         raise ValueError('Did not find appropriate method'
                            ' for array of shape{}'.format(tensor_array.shape))
+
+def calcStrainRate(velocity_gradient) -> np.ndarray:
+    """Calculate strain rate from n velocity gradient tensors
+
+    Interpreted as the symmetric tensor of the velocity gradient:
+    1/2 (u_{i,j} + u_{j,i})
+
+    Parameters
+    ----------
+    velocity_gradient : np.ndarray
+        Assumed to be of shape (n,9) in the order XX XY XZ YX YY YZ ZX ZY ZZ
+
+    Returns
+    -------
+    np.ndarray of shape (n,6) in the order XX YY ZZ XY XZ YZ
+
+    """
+    return np.array([
+        velocity_gradient[:,0], velocity_gradient[:,4], velocity_gradient[:,8],
+        0.5*(velocity_gradient[:,1] + velocity_gradient[:,3]),
+        0.5*(velocity_gradient[:,2] + velocity_gradient[:,6]),
+        0.5*(velocity_gradient[:,5] + velocity_gradient[:,7]),
+                     ]).T
