@@ -219,10 +219,10 @@ def sampleDataBlockProfile(dataBlock, line_walldists, pointid=None,
 
     if 'Normals' not in wall.array_names:
         raise RuntimeError('The wall object must have a "Normals" field present.')
-    if not pointid and not cutterobj:
+    if not isinstance(pointid, int) and not cutterobj:
         raise RuntimeError('Must provide either pointid or cutterobj.')
 
-    if pointid:
+    if isinstance(pointid, int):
         wallnormal = wall['Normals'][pointid,:] if normal is None else normal
         wallnormal = np.tile(wallnormal, (len(line_walldists),1))
 
