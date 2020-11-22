@@ -7,6 +7,11 @@ import pyvista as pv
 def form2DGrid(coords_array, connectivity_array=None) -> pv.UnstructuredGrid:
     """Create 2D VTK UnstructuredGrid from coordinates and connectivity
 
+    If connectivity_array has 4 IDs per element and the last two node IDs are
+    identical for at least one element, will assume that the mesh is a quad/tri
+    mixed mesh. Triangle elements have the repeated last node IDs, while quads
+    do not.
+
     Parameters
     ----------
     coords_array : numpy.ndarray
