@@ -7,6 +7,11 @@ import pyvista as pv
 def form2DGrid(coords_array, connectivity_array=None) -> pv.UnstructuredGrid:
     """Create 2D VTK UnstructuredGrid from coordinates and connectivity
 
+    If connectivity_array has 4 IDs per element and the last two node IDs are
+    identical for at least one element, will assume that the mesh is a quad/tri
+    mixed mesh. Triangle elements have the repeated last node IDs, while quads
+    do not.
+
     Parameters
     ----------
     coords_array : numpy.ndarray
@@ -42,17 +47,32 @@ def form2DGrid(coords_array, connectivity_array=None) -> pv.UnstructuredGrid:
     else:
         nCells = connectivity_array.shape[0]
         nPnts = connectivity_array.shape[1]
+        cell_type = None
         if nPnts == 3:
             cell_type = vtk.VTK_TRIANGLE # ==int(5)
         elif nPnts == 4:
-            cell_type = vtk.VTK_QUAD # ==int(9)
+            repeatedNode = connectivity_array[:,-1] == connectivity_array[:,-2]
+            if not np.any(repeatedNode): # not a quad/tri mesh
+                cell_type = vtk.VTK_QUAD # ==int(9)
         else:
             raise ValueError('This connectivity file has the wrong number of points.'
                              ' Must be either 3 or 4 points per cell, this has {}'.format(nPnts))
 
-        connectivity_array = np.hstack((np.ones((nCells,1), dtype=np.int64)*nPnts, connectivity_array))
-        offsets = np.arange(0, connectivity_array.size+1, nPnts+1, dtype=np.int64)
-        cell_types = np.ones(nCells, dtype=np.int64) * cell_type
+        if cell_type:
+            connectivity_array = np.hstack((np.ones((nCells,1), dtype=np.int64)*nPnts, connectivity_array))
+            offsets = np.arange(0, connectivity_array.size+1, nPnts+1, dtype=np.int64)
+            cell_types = np.ones(nCells, dtype=np.int64) * cell_type
+        else: # quad/tri mesh
+            cell_types = repeatedNode*vtk.VTK_TRIANGLE + np.invert(repeatedNode)*vtk.VTK_QUAD
+            offset     = repeatedNode*np.int64(3)      + np.invert(repeatedNode)*np.int64(4)
+
+            connectivity_array[repeatedNode, -1] = np.int64(-1)
+            connectivity_array = np.hstack((offset[:,None], connectivity_array))
+            connectivity_array = connectivity_array[connectivity_array != -1]
+
+            offsets = np.roll(np.cumsum(offset+1), 1)
+            offsets[0] = 0
+            pass
 
     grid = pv.UnstructuredGrid(offsets, connectivity_array, cell_types, coords_array)
 
