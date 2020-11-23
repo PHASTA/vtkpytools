@@ -24,8 +24,6 @@ def form3DGrid(coords_array, connectivity_array) -> pv.UnstructuredGrid:
     pv.UnstructuredGrid
         Pyvista UnstructuredGrid object with the grid loaded.
     """
-    coords_array = np.hstack([coords_array, np.zeros((coords_array.shape[0], 1)) ])
-
     nCells = connectivity_array.shape[0]
     nPnts = connectivity_array.shape[1]
     cell_type = None
@@ -33,7 +31,7 @@ def form3DGrid(coords_array, connectivity_array) -> pv.UnstructuredGrid:
         cell_type = vtk.VTK_TETRA # ==int(10)
     elif nPnts == 8:
         tetCells = connectivity_array[:,3] == connectivity_array[:,4]
-        pyrCells = connectivity_array[:,4] == connectivity_array[:,5]
+        pyrCells = (connectivity_array[:,4] == connectivity_array[:,5]) & ~tetCells
         if not np.any(pyrCells + tetCells): # not a mixed mesh
             cell_type = vtk.VTK_HEXAHEDRON # ==int(12)
     else:
@@ -46,16 +44,17 @@ def form3DGrid(coords_array, connectivity_array) -> pv.UnstructuredGrid:
         cell_types = np.ones(nCells, dtype=np.int64) * cell_type
     else: # mixed mesh
         hexCells = np.invert(tetCells + pyrCells)
-        cell_types = tetCells*vtk.VTK_TETRA + pyrCells*vtk.VTK_Pyr + hexCells*vtk.VTK_HEXAHEDRON
+        cell_types = tetCells*vtk.VTK_TETRA + pyrCells*vtk.VTK_PYRAMID + hexCells*vtk.VTK_HEXAHEDRON
         offset     = tetCells*np.int64(4)   + pyrCells*np.int64(5) + hexCells*np.int64(8)
 
         connectivity_array[tetCells, 4:] = np.int64(-1)
-        connectivity_array[tetCells, 5:] = np.int64(-1)
+        connectivity_array[pyrCells, 5:] = np.int64(-1)
         connectivity_array = np.hstack((offset[:,None], connectivity_array))
         connectivity_array = connectivity_array[connectivity_array != -1]
 
         offsets = np.roll(np.cumsum(offset+1), 1)
         offsets[0] = 0
-        pass
 
     grid = pv.UnstructuredGrid(offsets, connectivity_array, cell_types, coords_array)
+
+    return grid
