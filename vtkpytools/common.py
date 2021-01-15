@@ -235,7 +235,7 @@ def rotateTensor(tensor_array, rotation_tensor) -> np.ndarray:
 
     elif tensor_array.shape[1] == 9:
         shaped_tensors = tensor_array.reshape(tensor_array.shape[0], 3, 3)
-        return rank2Rotation(rotation_tensor, shaped_tensors).flatten()
+        return rank2Rotation(rotation_tensor, shaped_tensors).reshape(tensor_array.shape[0], 9)
     else:
         raise ValueError('Did not find appropriate method'
                            ' for array of shape{}'.format(tensor_array.shape))
