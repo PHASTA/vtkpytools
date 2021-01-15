@@ -5,21 +5,32 @@ from scipy.io import FortranFile
 from pathlib import Path
 
 def getGeometricSeries(maxval, minval, growthrate, include_zero=True) -> np.ndarray:
-    """Return geometric series based on inputs.
+    """Return geometric progression based on inputs.
 
-    A geometric series is defined as one where each successive point is the
-    multiplicative increase of the previous point:
+    A geometric progression is defined as the change from n_{i+1} to n_{i} is
+    equal to some multiplicative growth rate.
 
-        n_{i+1} = n_{i} * r
+        dn_{i+1} = dn_{i} * r
 
-    where r is the growth rate of the series.
+    or equivalently
+
+        dn_{i+1} = dn_{1} * r^{i-1}
+
+    where r is the growth rate of the series and dn_{i} = n_{i} - n_{i-1}.
+    Thus:
+
+        n_i = sum_{j=1}^{i} dn_{1} r^{j-1}
+
+    By assuming n_0 = 0, we use n_{1} = dn_{1} = minval. Whether n_{0} is
+    included in the resulting array is determined by the include_zero
+    parameter.
 
     Parameters
     ----------
     maxval : float
         Maximum value that should be reached by series
     minval : float
-        Initial value of the series
+        Initial value of the series, also sets dn_{1}
     growthrate : float
         Growth rate of the series
     include_zero : bool, optional
@@ -30,12 +41,19 @@ def getGeometricSeries(maxval, minval, growthrate, include_zero=True) -> np.ndar
     -------
     numpy.ndarray
     """
-    npoints = np.log(maxval/minval)/np.log(growthrate)
-    npoints = np.ceil(npoints)
-    npoints = int(npoints)
+    # Calculate the number of points required to reach maxval
+    npoints = np.log((maxval*(growthrate-1))/minval)/np.log(growthrate)
+    npoints = np.ceil(npoints).astype(np.int32)
 
-    geomseries = np.geomspace(minval, maxval, npoints)
-    if include_zero: geomseries = np.insert(geomseries, 0, 0.0)
+    # Calculate the values of dn_i
+    if include_zero:
+        geomseries = np.zeros(npoints + 1)
+        geomseries[1:] = minval*growthrate**np.arange(npoints)
+    else:
+        geomseries = minval*growthrate**np.arange(npoints)
+
+    # Sum the dn_i together to get n_i
+    geomseries = np.cumsum(geomseries)
 
     return geomseries
 
