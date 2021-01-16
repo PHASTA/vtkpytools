@@ -43,17 +43,20 @@ def getGeometricSeries(maxval, minval, growthrate, include_zero=True) -> np.ndar
     """
     # Calculate the number of points required to reach maxval
     npoints = np.log((maxval*(growthrate-1))/minval)/np.log(growthrate)
-    npoints = np.ceil(npoints).astype(np.int32)
+    npoints = np.floor(npoints).astype(np.int32)
 
     # Calculate the values of dn_i
     if include_zero:
-        geomseries = np.zeros(npoints + 1)
-        geomseries[1:] = minval*growthrate**np.arange(npoints)
+        geomseries = np.zeros(npoints + 2)
+        geomseries[1:-1] = minval*growthrate**np.arange(npoints)
     else:
-        geomseries = minval*growthrate**np.arange(npoints)
+        geomseries = np.zeros(npoints + 1)
+        geomseries[:-1]  = minval*growthrate**np.arange(npoints)
 
     # Sum the dn_i together to get n_i
     geomseries = np.cumsum(geomseries)
+
+    geomseries[-1] = maxval
 
     return geomseries
 
