@@ -153,7 +153,6 @@ grid['Velocity'] = velbarArray[:,1:4]
 if not args.velonly:
     ReyStrTensor = vpt.calcReynoldsStresses(stsbarArray, velbarArray)
     grid['ReynoldsStress'] = ReyStrTensor
-    grid['TurbulentEnergyKinetic'] = (1/3)*(np.sum(ReyStrTensor[:,0:3], axis=1))
 
 if args.debug and not args.velonly:
     grid['stsbar'] = stsbarArray
