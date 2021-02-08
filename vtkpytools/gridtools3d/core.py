@@ -7,7 +7,8 @@ import pyvista as pv
 def form3DGrid(coords_array, connectivity_array) -> pv.UnstructuredGrid:
     """Create 3D VTK UnstructuredGrid from coordinates and connectivity
 
-    Currently supports tet grids, mixed tet/pyramid/hex grids.
+    Currently supports tet grids, mixed tet/pyramid/hex grids, and mixed
+    tet/wedge topologies.
 
     Parameters
     ----------
@@ -29,26 +30,37 @@ def form3DGrid(coords_array, connectivity_array) -> pv.UnstructuredGrid:
     cell_type = None
     if nPnts == 4:
         cell_type = vtk.VTK_TETRA # ==int(10)
+    elif nPnts == 6:
+        tetCells = connectivity_array[:,3] == connectivity_array[:,4]
+        pyrCells = (connectivity_array[:,4] == connectivity_array[:,5]) & ~tetCells
+        wedCells = np.invert(tetCells + pyrCells)
+        hexCells = 0
+        if not np.any(pyrCells + tetCells): # not a mixed mesh
+            cell_type = vtk.VTK_WEDGE # ==int(12)
     elif nPnts == 8:
         tetCells = connectivity_array[:,3] == connectivity_array[:,4]
         pyrCells = (connectivity_array[:,4] == connectivity_array[:,5]) & ~tetCells
-        if not np.any(pyrCells + tetCells): # not a mixed mesh
+        wedCells = (connectivity_array[:,5] == connectivity_array[:,6]) & ~(tetCells | pyrCells)
+        hexCells = np.invert(tetCells + pyrCells + wedCells)
+        if not np.any(pyrCells + tetCells + wedCells): # not a mixed mesh
             cell_type = vtk.VTK_HEXAHEDRON # ==int(12)
     else:
         raise ValueError('This connectivity file has the wrong number of points.'
-                            ' Must be either 4 or 8 points per cell, this has {}'.format(nPnts))
+                            ' Must be either 4, 6, or 8 points per cell, this has {}'.format(nPnts))
 
     if cell_type:
         connectivity_array = np.hstack((np.ones((nCells,1), dtype=np.int64)*nPnts, connectivity_array))
         offsets = np.arange(0, connectivity_array.size+1, nPnts+1, dtype=np.int64)
         cell_types = np.ones(nCells, dtype=np.int64) * cell_type
     else: # mixed mesh
-        hexCells = np.invert(tetCells + pyrCells)
-        cell_types = tetCells*vtk.VTK_TETRA + pyrCells*vtk.VTK_PYRAMID + hexCells*vtk.VTK_HEXAHEDRON
-        offset     = tetCells*np.int64(4)   + pyrCells*np.int64(5) + hexCells*np.int64(8)
+        cell_types = tetCells*vtk.VTK_TETRA      + pyrCells*vtk.VTK_PYRAMID + \
+                     hexCells*vtk.VTK_HEXAHEDRON + wedCells*vtk.VTK_WEDGE
+        offset     = tetCells*np.int64(4)   + pyrCells*np.int64(5) +  \
+                     hexCells*np.int64(8)   + wedCells*np.int64(6)
 
         connectivity_array[tetCells, 4:] = np.int64(-1)
         connectivity_array[pyrCells, 5:] = np.int64(-1)
+        connectivity_array[wedCells, 6:] = np.int64(-1)
         connectivity_array = np.hstack((offset[:,None], connectivity_array))
         connectivity_array = connectivity_array[connectivity_array != -1]
 
