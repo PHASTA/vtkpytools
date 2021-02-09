@@ -248,7 +248,7 @@ def bar2vtk_function(vtkfile: Path, barfiledir: Path, timestep: str, \
 
         return tomlMetadata
 
-def tomlReciept(args: dict, tomlMetadata: dict):
+def tomlReceipt(args: dict, tomlMetadata: dict):
 
     convertArray = [(PurePath, lambda x: x.as_posix()),
                     (type(None), lambda x: '')
