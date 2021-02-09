@@ -258,18 +258,11 @@ def tomlReciept(args: dict, tomlMetadata: dict):
                     (type(None), lambda x: '')
                     ]
 
-    # Convert Path objects to string for toml writing
-    # for key, val in args.items():
-    #     _convert2TomlTypes(val, convertArray)
-    #     if isinstance(val, list):
-    #         for subval in val:
-    #             _convert2TomlTypes(val, convertArray)
     _convertArray2TomlTypes(args, convertArray)
 
     vtmPath = tomlMetadata['vtmPath']
     del tomlMetadata['vtmPath']
     _convertArray2TomlTypes(tomlMetadata, convertArray)
-    print(args)
 
     tomldict = {'arguments': args}
 
