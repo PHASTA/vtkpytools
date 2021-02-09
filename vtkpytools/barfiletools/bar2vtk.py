@@ -7,8 +7,15 @@ from .data import binaryVelbar, binaryStsbar, calcReynoldsStresses, compute_vort
 from ..common import globFile
 
 def bar2vtk_parse():
-    Description=""" Create a new VTK file from the *bar files and an existing VTK file of
-    the mesh.
+    GeneralDescription="""Tool for putting velbar and stsbar data onto a vtm grid."""
+
+    ModeDescription="""There are two modes: cli and toml. Run:
+    \tbar2vtk cli --help
+    \tbar2vtk toml --help
+
+    to get help information for each mode respectively."""
+
+    CLIDescription="""Set bar2vtk settings via cli arguments and flags.
 
     Examples:
     \tbar2vtk.py blankDataBlock.vtm BinaryBars 10000
@@ -24,47 +31,62 @@ def bar2vtk_parse():
     generated. This requires a '--ts0' argument be provided as well for calculating
     the windowed value."""
 
-    ## Parsing script input
+    TomlDescription="""Set bar2vtk settings via a toml configuration file.
+
+    Examples:
+    \tbar2vtk toml filledBar2vtkConfig.toml
+    \tbar2vtk toml --blank  #outputs 'blankConfig.toml'
+    \tbar2vtk toml --blank customName.toml #outputs 'customName.toml' """
+
     class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter, argparse.RawDescriptionHelpFormatter):
         """To display defaults in help and have a multiline help description"""
         # Shamelessly ripped from https://stackoverflow.com/a/18462760/7564988
         pass
 
-    parser = argparse.ArgumentParser(description=Description,
+    ## Parsing script input
+    parser = argparse.ArgumentParser(description=GeneralDescription,
                                     formatter_class=CustomFormatter,
                                     prog='bar2vtk')
-    parser.add_argument('vtkfile', help='MultiBlock VTK file that contains grid and wall', type=Path)
-    parser.add_argument('barfiledir', help='Path to *bar file directory', type=Path)
-    parser.add_argument('timestep', help='Timestep of the barfiles. May be range', type=str)
-    parser.add_argument('--ts0','--bar-average-start',
+    subparser = parser.add_subparsers(title='Modes', description=ModeDescription, dest='subparser_name')
+
+    # CLI Parser Setup
+    cliparser = subparser.add_parser('cli', description=CLIDescription,
+                                     formatter_class=CustomFormatter,
+                                     help='Command Line Interface mode uses standard flags and cli arguments')
+    # cliparser.set_defaults(which='cli')
+
+    cliparser.add_argument('vtkfile', help="MultiBlock VTK file that contains 'grid' and 'wall'", type=Path)
+    cliparser.add_argument('barfiledir', help='Path to *bar file directory', type=Path)
+    cliparser.add_argument('timestep', help='Timestep of the barfiles. May be range', type=str)
+    cliparser.add_argument('--ts0','--bar-average-start',
                         help='Starting timestep of the averaging process. Only used'
                             ' for generating windows.',
                         type=int, default=-1)
-    parser.add_argument('-f','--new-file-prefix',
+    cliparser.add_argument('-f','--new-file-prefix',
                         help='Prefix for the new file. Will have timestep appended.',
                         type=str)
-    parser.add_argument('--outpath', help='Custom path for the output VTM file.'
+    cliparser.add_argument('--outpath', help='Custom path for the output VTM file.'
                                         ' vtkfile path used if not given', type=Path)
-    parser.add_argument('--velonly', help='Only process velbar file', action='store_true')
-    parser.add_argument('--debug', help='Load raw stsbar data into VTM', action='store_true')
-    parser.add_argument('--vptpath', help='Custom path to vtkpytools package', type=Path)
-    parser.add_argument('-a', '--ascii', help='Read *bar files as ASCII', action='store_true')
-    parser.add_argument('--velbar', help='Path to velbar file(s)', type=Path, nargs='+', default=[])
-    parser.add_argument('--stsbar', help='Path to stsbar file(s)', type=Path, nargs='+', default=[])
+    cliparser.add_argument('--velonly', help='Only process velbar file', action='store_true')
+    cliparser.add_argument('--debug', help='Load raw stsbar data into VTM', action='store_true')
+    cliparser.add_argument('--vptpath', help='Custom path to vtkpytools package', type=Path)
+    cliparser.add_argument('-a', '--ascii', help='Read *bar files as ASCII', action='store_true')
+    cliparser.add_argument('--velbar', help='Path to velbar file(s)', type=Path, nargs='+', default=[])
+    cliparser.add_argument('--stsbar', help='Path to stsbar file(s)', type=Path, nargs='+', default=[])
 
-    return parser.parse_args()
+    # Toml Parser Setup
+    tomlparser = subparser.add_parser('toml', description=TomlDescription, formatter_class=CustomFormatter,
+                                      help='Toml mode uses configuration files in the toml format')
+    # tomlparser.set_defaults(which='toml')
+    tomlsubparser = tomlparser.add_subparsers()
+    blanktoml = tomlsubparser.add_parser('blank', description='Blank Toml', formatter_class=CustomFormatter,
+                                      help='Create blank toml')
+    blanktoml.set_defaults(blank=True)
+    tomlparser.add_argument('tomlfile', nargs='?', help='Run bar2vtk using toml config file')
 
-    # bar2vtk(vtkfile = args.vtkfile,
-    # barfiledir = args.barfiledir,
-    # timestep = args.timestep,
-    # ts0 = args.ts0,
-    # new_file_prefix = args.new_file_prefix,
-    # outpath = args.outpath,
-    # velonly = args.velonly,
-    # debug = args.debug,
-    # asciibool = args.ascii,
-    # velbar = args.velbar,
-    # stsbar = args.stsbar)
+    args = vars(parser.parse_args())
+
+    return args
 
 def bar2vtk(vtkfile: Path, barfiledir: Path, timestep: str, \
             ts0: int=-1,  new_file_prefix: str='', outpath: Path=None, \
