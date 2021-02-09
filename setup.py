@@ -2,7 +2,7 @@ import setuptools
 import os
 
 version = ''
-with open('vtkpytools/__init__.py') as f:
+with open('vtkpytools/_version.py') as f:
     for line in f.readlines():
         if line.startswith('__version__'):
             version = line.split('=')[1].strip().replace("'", '')
