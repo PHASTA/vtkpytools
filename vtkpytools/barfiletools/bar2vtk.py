@@ -266,7 +266,9 @@ def tomlReciept(args: dict, tomlMetadata: dict):
 
     tomldict = {'arguments': args}
 
-    meta = {'created': datetime.datetime.now()}
+    meta = {}
+    meta['bar2vtk_vars'] = tomlMetadata
+    meta['created'] = datetime.datetime.now()
     meta['vtkpytools_version'] = __version__
     meta['pyvista_version'] = pv.__version__
     meta['vtk.VTK_VERSION'] = vtk.VTK_VERSION
