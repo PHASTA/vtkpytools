@@ -14,13 +14,31 @@ def bar2vtk_bin():
     argsdict = bar2vtk_parse()
 
     if argsdict['subparser_name'] == 'cli':
-        argsdict['asciidata'] = argsdict.pop('ascii')
-        for key in list(argsdict.keys()):
+        bar2vtkargs = argsdict.copy()
+        bar2vtkargs['asciidata'] = bar2vtkargs.pop('ascii')
+        for key in list(bar2vtkargs.keys()):
             if key not in bar2vtk_function.__code__.co_varnames:
-                del argsdict[key]
+                del bar2vtkargs[key]
 
-        tomlMetadata = bar2vtk_function(**argsdict, returnTomlMetadata=True)
-        tomlReciept(argsdict, tomlMetadata)
+    elif argsdict['subparser_name'] == 'toml':
+        if argsdict['blank']:
+            # blankToml(argsdict['tomlfile'])
+            return
+        assert argsdict['tomlfile'].is_file()
+        with argsdict['tomlfile'].open() as tomlfile:
+            tomldict = pytomlpp.load(tomlfile)
+        bar2vtkargs = tomldict['arguments']
+        for key, val in bar2vtkargs.items():
+            if key in ['barfiledir', 'outpath', 'vtkfile', 'velbar', 'stsbar']:
+                if isinstance(val, list):
+                    for i, item in enumerate(val):
+                        val[i] = Path(item)
+                else:
+                    bar2vtkargs[key] = Path(val)
+    print(bar2vtkargs)
+
+    tomlMetadata = bar2vtk_function(**bar2vtkargs, returnTomlMetadata=True)
+    tomlReceipt(bar2vtkargs, tomlMetadata)
 
 def bar2vtk_parse():
     GeneralDescription="""Tool for putting velbar and stsbar data onto a vtm grid."""
@@ -94,7 +112,8 @@ def bar2vtk_parse():
     tomlparser = subparser.add_parser('toml', description=TomlDescription, formatter_class=CustomFormatter,
                                       help='Toml mode uses configuration files in the toml format')
     tomlparser.add_argument('-b', '--blank', help='Create blank toml', action='store_true')
-    tomlparser.add_argument('tomlfile', nargs='?', help='Run bar2vtk using toml config file')
+    tomlparser.add_argument('tomlfile', nargs='?', help='Run bar2vtk using toml config file',
+                            type=Path)
 
     args = vars(parser.parse_args())
 
