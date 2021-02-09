@@ -257,7 +257,6 @@ def tomlReceipt(args: dict, tomlMetadata: dict):
     _convertArray2TomlTypes(args, convertArray)
 
     vtmPath = tomlMetadata['vtmPath']
-    del tomlMetadata['vtmPath']
     _convertArray2TomlTypes(tomlMetadata, convertArray)
 
     tomldict = {'arguments': args}
@@ -267,7 +266,7 @@ def tomlReceipt(args: dict, tomlMetadata: dict):
     meta['created'] = datetime.datetime.now()
     meta['vtkpytools_version'] = __version__
     meta['pyvista_version'] = pv.__version__
-    meta['vtk.VTK_VERSION'] = vtk.VTK_VERSION
+    meta['vtk_version'] = vtk.VTK_VERSION
     meta['python_version'] = platform.python_version()
     meta['uname'] = platform.uname()._asdict()
 
