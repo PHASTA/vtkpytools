@@ -1,10 +1,26 @@
-import vtk, os, argparse
+import vtk, os, argparse, datetime, platform, warnings
+import pytomlpp
 import pyvista as pv
 import numpy as np
-from pathlib import Path
+from pathlib import Path, PurePath
 
 from .data import binaryVelbar, binaryStsbar, calcReynoldsStresses, compute_vorticity
 from ..common import globFile
+from .._version import __version__
+
+def bar2vtk_bin():
+    """Function that runs the "binary" bar2vtk"""
+
+    argsdict = bar2vtk_parse()
+
+    if argsdict['subparser_name'] == 'cli':
+        argsdict['asciidata'] = argsdict.pop('ascii')
+        for key in list(argsdict.keys()):
+            if key not in bar2vtk_function.__code__.co_varnames:
+                del argsdict[key]
+
+        tomlMetadata = bar2vtk_function(**argsdict, returnTomlMetadata=True)
+        tomlReciept(argsdict, tomlMetadata)
 
 def bar2vtk_parse():
     GeneralDescription="""Tool for putting velbar and stsbar data onto a vtm grid."""
@@ -88,10 +104,10 @@ def bar2vtk_parse():
 
     return args
 
-def bar2vtk(vtkfile: Path, barfiledir: Path, timestep: str, \
-            ts0: int=-1,  new_file_prefix: str='', outpath: Path=None, \
-            velonly=False, debug=False, asciibool=False, \
-            velbar=[],     stsbar=[]):
+def bar2vtk_function(vtkfile: Path, barfiledir: Path, timestep: str, \
+                     ts0: int=-1,  new_file_prefix: str='', outpath: Path=None, \
+                     velonly=False, debug=False, asciidata=False, \
+                     velbar=[],     stsbar=[], returnTomlMetadata=False):
     """Convert velbar and stsbar files into 2D vtk files
 
     See bar2vtk_commandline help documentation for more information.
@@ -110,16 +126,17 @@ def bar2vtk(vtkfile: Path, barfiledir: Path, timestep: str, \
         new_file_prefix
     outpath : Path
         outpath
-    velonly :
-        velonly
-    debug :
-        debug
-    asciibool :
-        asciibool
-    velbar :
-        velbar
-    stsbar :
-        stsbar
+    velonly : bool
+        Do not include the stsbar file. (Default: False)
+    debug : bool
+        Adds raw stsbar array as data field. This is purely for debugging
+        purposes. (Default: False)
+    asciidata : bool
+        Whether file paths are in ASCII format. (Default: False)
+    velbar : List of Path
+        Path(s) to velbar files. If doing time windows, must have two Paths
+    stsbar : List of Path
+        Path(s) to stsbar files. If doing time windows, must have two Paths
     """
 
     ## ---- Process/check script arguments
@@ -149,8 +166,8 @@ def bar2vtk(vtkfile: Path, barfiledir: Path, timestep: str, \
 
     vtmPath = (outpath if outpath else vtkfile.parent) / vtmName
 
-    velbarReader = np.loadtxt if asciibool else binaryVelbar
-    stsbarReader = np.loadtxt if asciibool else binaryStsbar
+    velbarReader = np.loadtxt if asciidata else binaryVelbar
+    stsbarReader = np.loadtxt if asciidata else binaryStsbar
 
     ## ---- Loading data arrays
     if '-' in timestep:
@@ -188,16 +205,16 @@ def bar2vtk(vtkfile: Path, barfiledir: Path, timestep: str, \
                         stsbarArrays[0]*(timesteps[0] - ts0)) / (timesteps[1] - timesteps[0])
         print('Finished computing timestep window')
     else:
-        velbarPath = velbar if velbar else \
+        velbarPaths = velbar if velbar else \
             (globFile('velbar*.{}*'.format(timestep), barfiledir))
-        print('Using data files:\n\t{}'.format(velbarPath))
-        velbarArray = velbarReader(velbarPath)
+        print('Using data files:\n\t{}'.format(velbarPaths))
+        velbarArray = velbarReader(velbarPaths)
 
         if not velonly:
-            stsbarPath = stsbar if stsbar else \
+            stsbarPaths = stsbar if stsbar else \
                 (globFile('stsbar*.{}*'.format(timestep), barfiledir))
-            print('\t{}'.format(stsbarPath))
-            stsbarArray = stsbarReader(stsbarPath)
+            print('\t{}'.format(stsbarPaths))
+            stsbarArray = stsbarReader(stsbarPaths)
 
     ## ---- Load DataBlock
     dataBlock = pv.MultiBlock(vtkfile.as_posix())
@@ -226,3 +243,78 @@ def bar2vtk(vtkfile: Path, barfiledir: Path, timestep: str, \
     print('Saving dataBlock file to: {}'.format(vtmPath), end='')
     dataBlock.save(vtmPath)
     print('\tDone!')
+    if returnTomlMetadata:
+        tomlMetadata = {}
+        tomlMetadata['vtmPath'] = vtmPath
+        tomlMetadata['velbarPaths'] = velbarPaths
+        if not velonly:
+            tomlMetadata['stsbarPaths'] = stsbarPaths
+
+        return tomlMetadata
+
+def tomlReciept(args: dict, tomlMetadata: dict):
+
+    convertArray = [(PurePath, lambda x: x.as_posix()),
+                    (type(None), lambda x: '')
+                    ]
+
+    # Convert Path objects to string for toml writing
+    # for key, val in args.items():
+    #     _convert2TomlTypes(val, convertArray)
+    #     if isinstance(val, list):
+    #         for subval in val:
+    #             _convert2TomlTypes(val, convertArray)
+    _convertArray2TomlTypes(args, convertArray)
+
+    vtmPath = tomlMetadata['vtmPath']
+    del tomlMetadata['vtmPath']
+    _convertArray2TomlTypes(tomlMetadata, convertArray)
+    print(args)
+
+    tomldict = {'arguments': args}
+
+    meta = {'created': datetime.datetime.now()}
+    meta['vtkpytools_version'] = __version__
+    meta['pyvista_version'] = pv.__version__
+    meta['vtk.VTK_VERSION'] = vtk.VTK_VERSION
+    meta['python_version'] = platform.python_version()
+    meta['uname'] = platform.uname()._asdict()
+
+    meta['directory'] = os.getcwd()
+
+    tomldict['metadata'] = meta
+
+    vtmDir = Path(os.path.splitext(vtmPath)[0])
+    if not vtmDir.is_dir():
+        warnings.warn('Directory {} does not exist. '
+                      'Cannot create toml receipt.'.format(vtmDir.as_posix()),
+                      RuntimeWarning)
+    else:
+        tomlPath = vtmDir / Path('receipt.toml')
+        print(vtmDir)
+        print(tomlPath)
+        with tomlPath.open(mode='w') as file:
+            pytomlpp.dump(tomldict, file)
+
+def _convert2TomlTypes(val, convertArray: list):
+    for typeobj, convert in convertArray:
+        print('\tLooping through stuff', typeobj, convert)
+        if isinstance(val, typeobj):
+            return convert(val)
+
+def _convertArray2TomlTypes(array, convertArray: list):
+    if isinstance(array, dict):
+        for key, val in array.items():
+            for typeobj, convert in convertArray:
+                if isinstance(val, typeobj):
+                    array[key] = convert(val)
+            if isinstance(val, (list, dict, tuple)):
+                _convertArray2TomlTypes(val, convertArray)
+    else:
+        for i, item in enumerate(array):
+            for typeobj, convert in convertArray:
+                if isinstance(item, typeobj):
+                    array[i] = convert(item)
+            if isinstance(item, (list, dict, tuple)):
+                _convertArray2TomlTypes(item, convertArray)
+
