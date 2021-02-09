@@ -140,13 +140,13 @@ def bar2vtk_function(vtkfile: Path, barfiledir: Path, timestep: str, \
     assert barfiledir.is_dir()
 
     if debug and velonly:
-        raise RuntimeError('--velonly counteracts the effect of --debug. Choose one or the other.')
+        raise RuntimeError('velonly counteracts the effect of debug. Choose one or the other.')
 
     if not len(velbar) == len(stsbar):
-        raise ValueError('--velbar and --stsbar must be given same number of paths'
+        raise ValueError('velbar and stsbar must be given same number of paths'
                         ', given {} and {}, respectively'.format(len(velbar), len(stsbar)))
 
-    for flag, arg in {'--velbar':velbar, '--stsbar':stsbar}.items():
+    for flag, arg in {'velbar':velbar, 'stsbar':stsbar}.items():
         if len(arg) > 2:
             pathStrings = '\n\t' + '\n\t'.join([x.as_posix() for x in arg])
             raise ValueError('{} can only contain two paths max.'
@@ -169,7 +169,7 @@ def bar2vtk_function(vtkfile: Path, barfiledir: Path, timestep: str, \
     if '-' in timestep:
     # Create timestep windows
         if ts0 == -1:
-            raise RuntimeError("Starting timestep of bar field averaging required (--ts0)")
+            raise RuntimeError("Starting timestep of bar field averaging required (ts0)")
 
         timesteps = [int(x) for x in timestep.split('-')]
         print('Creating timewindow between {} and {}'.format(timesteps[0], timesteps[1]))
