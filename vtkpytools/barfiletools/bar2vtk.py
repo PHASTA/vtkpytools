@@ -63,6 +63,7 @@ def bar2vtk_parse():
     parser = argparse.ArgumentParser(description=GeneralDescription,
                                     formatter_class=CustomFormatter,
                                     prog='bar2vtk')
+    parser.add_argument('-v', '--version', action='version', version=__version__)
     subparser = parser.add_subparsers(title='Modes', description=ModeDescription, dest='subparser_name')
 
     # CLI Parser Setup
@@ -92,10 +93,7 @@ def bar2vtk_parse():
     # Toml Parser Setup
     tomlparser = subparser.add_parser('toml', description=TomlDescription, formatter_class=CustomFormatter,
                                       help='Toml mode uses configuration files in the toml format')
-    tomlsubparser = tomlparser.add_subparsers()
-    blanktoml = tomlsubparser.add_parser('blank', description='Blank Toml', formatter_class=CustomFormatter,
-                                      help='Create blank toml')
-    blanktoml.set_defaults(blank=True)
+    tomlparser.add_argument('-b', '--blank', help='Create blank toml', action='store_true')
     tomlparser.add_argument('tomlfile', nargs='?', help='Run bar2vtk using toml config file')
 
     args = vars(parser.parse_args())
