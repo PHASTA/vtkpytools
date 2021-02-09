@@ -11,5 +11,6 @@ def test_calcStrainRate():
     strainrate = vpt.calcStrainRate(gradientarray)
 
     assert np.allclose(strainrate, solution)
+    assert strainrate.shape[0] == gradientarray.shape[0]
 
 
