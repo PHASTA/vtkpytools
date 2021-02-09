@@ -22,7 +22,7 @@ def bar2vtk_bin():
 
     elif argsdict['subparser_name'] == 'toml':
         if argsdict['blank']:
-            # blankToml(argsdict['tomlfile'])
+            blankToml(argsdict['tomlfile'])
             return
         assert argsdict['tomlfile'].is_file()
         with argsdict['tomlfile'].open() as tomlfile:
@@ -266,6 +266,26 @@ def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
             tomlMetadata['stsbarPaths'] = stsbarPaths
 
         return tomlMetadata
+
+def blankToml(tomlfilepath: Path, returndict=False):
+    """Write blank toml file to tomlfilepath"""
+    tomldict = { 'arguments': {
+        'blankvtmfile': 'path/to/blankVTMFile (required)',
+        'barfiledir': 'path/to/directory/of/*barfiles (required)',
+        'timestep': 'timestep (range) of data (required)',
+        'ts0': -1,
+        'new_file_prefix': '',
+        'outpath': 'path/to/different/output/directory',
+        'velonly': False,
+        'debug': False,
+        'asciidata': False,
+        'velbar': [],
+        'stsbar': [],
+    }}
+
+    with tomlfilepath.open('w') as file:
+        pytomlpp.dump(tomldict, file)
+    if returndict: return tomldict
 
 def tomlReceipt(args: dict, tomlMetadata: dict):
 
