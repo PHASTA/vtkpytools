@@ -69,7 +69,6 @@ def bar2vtk_parse():
     cliparser = subparser.add_parser('cli', description=CLIDescription,
                                      formatter_class=CustomFormatter,
                                      help='Command Line Interface mode uses standard flags and cli arguments')
-    # cliparser.set_defaults(which='cli')
 
     cliparser.add_argument('vtkfile', help="MultiBlock VTK file that contains 'grid' and 'wall'", type=Path)
     cliparser.add_argument('barfiledir', help='Path to *bar file directory', type=Path)
@@ -93,7 +92,6 @@ def bar2vtk_parse():
     # Toml Parser Setup
     tomlparser = subparser.add_parser('toml', description=TomlDescription, formatter_class=CustomFormatter,
                                       help='Toml mode uses configuration files in the toml format')
-    # tomlparser.set_defaults(which='toml')
     tomlsubparser = tomlparser.add_subparsers()
     blanktoml = tomlsubparser.add_parser('blank', description='Blank Toml', formatter_class=CustomFormatter,
                                       help='Create blank toml')
