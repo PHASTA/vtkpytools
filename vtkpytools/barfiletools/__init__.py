@@ -3,4 +3,4 @@ from .data import (binaryVelbar, binaryStsbar, calcCf, calcReynoldsStresses,
                    compute_vorticity, sampleDataBlockProfile, calcWallShearGradient,
                    wallAlignRotationTensor)
 
-__name__ = "bar2vtk"
+__name__ = "barfiletools"
