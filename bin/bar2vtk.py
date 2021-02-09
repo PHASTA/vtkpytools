@@ -1,14 +1,26 @@
 #!/usr/bin/env python3
 import vtkpytools as vpt
 
-argsdict = vpt.bar2vtk_parse()
+# vpt.bar2vtk_bin()
+#
 
-argsdict['asciidata'] = argsdict.pop('ascii')
-for key in list(argsdict.keys()):
-    if key not in vpt.bar2vtk.__code__.co_varnames:
-        del argsdict[key]
+from pathlib import Path, PurePath
+test = {'vtkfile': Path('result/exampleMesh.vtm'), 'barfiledir': Path('data'), 'timestep': '10000', 'ts0': -1, 'new_ file_prefix': None, 'outpath': None, 'velonly': False, 'debug': False, 'velbar': [], 'stsbar': [], 'asciidata': False,
+        'list': [Path('~/gitRepos'), Path('/projects'), 'fjfj']}
+convertArray = [(PurePath, lambda x: x.as_posix()),
+                (type(None), lambda x: '')
+                ]
+vpt.barfiletools.bar2vtk._convertArray2TomlTypes(test, convertArray)
+print(test)
 
-vpt.bar2vtk(**argsdict)
+# argsdict = vpt.bar2vtk_parse()
+
+# argsdict['asciidata'] = argsdict.pop('ascii')
+# for key in list(argsdict.keys()):
+#     if key not in vpt.bar2vtk.__code__.co_varnames:
+#         del argsdict[key]
+
+# vpt.bar2vtk(**argsdict)
 
 # vpt.bar2vtk(vtkfile = args.vtkfile,
 # barfiledir = args.barfiledir,
