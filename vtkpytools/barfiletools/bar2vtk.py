@@ -29,7 +29,7 @@ def bar2vtk_bin():
             tomldict = pytomlpp.load(tomlfile)
         bar2vtkargs = tomldict['arguments']
         for key, val in bar2vtkargs.items():
-            if key in ['barfiledir', 'outpath', 'vtkfile', 'velbar', 'stsbar']:
+            if key in ['barfiledir', 'outpath', 'blankvtmfile', 'velbar', 'stsbar']:
                 if isinstance(val, list):
                     for i, item in enumerate(val):
                         val[i] = Path(item)
@@ -89,7 +89,7 @@ def bar2vtk_parse():
                                      formatter_class=CustomFormatter,
                                      help='Command Line Interface mode uses standard flags and cli arguments')
 
-    cliparser.add_argument('vtkfile', help="MultiBlock VTK file that contains 'grid' and 'wall'", type=Path)
+    cliparser.add_argument('blankvtmfile', help="MultiBlock VTK file that contains 'grid' and 'wall'", type=Path)
     cliparser.add_argument('barfiledir', help='Path to *bar file directory', type=Path)
     cliparser.add_argument('timestep', help='Timestep of the barfiles. May be range', type=str)
     cliparser.add_argument('--ts0','--bar-average-start',
@@ -100,7 +100,7 @@ def bar2vtk_parse():
                         help='Prefix for the new file. Will have timestep appended.',
                         type=str)
     cliparser.add_argument('--outpath', help='Custom path for the output VTM file.'
-                                        ' vtkfile path used if not given', type=Path)
+                                        ' blankvtmfile path used if not given', type=Path)
     cliparser.add_argument('--velonly', help='Only process velbar file', action='store_true')
     cliparser.add_argument('--debug', help='Load raw stsbar data into VTM', action='store_true')
     cliparser.add_argument('--vptpath', help='Custom path to vtkpytools package', type=Path)
@@ -119,7 +119,7 @@ def bar2vtk_parse():
 
     return args
 
-def bar2vtk_function(vtkfile: Path, barfiledir: Path, timestep: str, \
+def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
                      ts0: int=-1,  new_file_prefix: str='', outpath: Path=None, \
                      velonly=False, debug=False, asciidata=False, \
                      velbar=[],     stsbar=[], returnTomlMetadata=False):
@@ -129,8 +129,8 @@ def bar2vtk_function(vtkfile: Path, barfiledir: Path, timestep: str, \
 
     Parameters
     ----------
-    vtkfile : Path
-        vtkfile
+    blankvtmfile : Path
+        blankvtmfile
     barfiledir : Path
         barfiledir
     timestep : str
@@ -155,7 +155,7 @@ def bar2vtk_function(vtkfile: Path, barfiledir: Path, timestep: str, \
     """
 
     ## ---- Process/check script arguments
-    assert vtkfile.is_file()
+    assert blankvtmfile.is_file()
     assert barfiledir.is_dir()
 
     if debug and velonly:
@@ -177,9 +177,9 @@ def bar2vtk_function(vtkfile: Path, barfiledir: Path, timestep: str, \
     if new_file_prefix:
         vtmName = Path(new_file_prefix + '_' + timestep + '.vtm')
     else:
-        vtmName = Path(os.path.splitext(vtkfile.name)[0] + '_' + timestep + '.vtm')
+        vtmName = Path(os.path.splitext(blankvtmfile.name)[0] + '_' + timestep + '.vtm')
 
-    vtmPath = (outpath if outpath else vtkfile.parent) / vtmName
+    vtmPath = (outpath if outpath else blankvtmfile.parent) / vtmName
 
     velbarReader = np.loadtxt if asciidata else binaryVelbar
     stsbarReader = np.loadtxt if asciidata else binaryStsbar
@@ -232,7 +232,7 @@ def bar2vtk_function(vtkfile: Path, barfiledir: Path, timestep: str, \
             stsbarArray = stsbarReader(stsbarPaths)
 
     ## ---- Load DataBlock
-    dataBlock = pv.MultiBlock(vtkfile.as_posix())
+    dataBlock = pv.MultiBlock(blankvtmfile.as_posix())
     grid = dataBlock['grid']
     wall = dataBlock['wall']
 
