@@ -319,8 +319,6 @@ def tomlReceipt(args: dict, tomlMetadata: dict):
                       RuntimeWarning)
     else:
         tomlPath = vtmDir / Path('receipt.toml')
-        print(vtmDir)
-        print(tomlPath)
         with tomlPath.open(mode='w') as file:
             pytomlpp.dump(tomldict, file)
 
