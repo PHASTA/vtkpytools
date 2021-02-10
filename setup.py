@@ -29,5 +29,10 @@ setuptools.setup(
     scripts = scripts_hack(
         ('./bin/bar2vtk.py', 'bar2vtk'),
         ('./bin/barsplit.py', 'barsplit')
-    )
+    ),
+    install_requires = [
+        'pyvista',
+        'numpy',
+        'pytomlpp'
+    ]
 )
