@@ -103,7 +103,6 @@ def bar2vtk_parse():
                                         ' blankvtmfile path used if not given', type=Path)
     cliparser.add_argument('--velonly', help='Only process velbar file', action='store_true')
     cliparser.add_argument('--debug', help='Load raw stsbar data into VTM', action='store_true')
-    cliparser.add_argument('--vptpath', help='Custom path to vtkpytools package', type=Path)
     cliparser.add_argument('-a', '--ascii', help='Read *bar files as ASCII', action='store_true')
     cliparser.add_argument('--velbar', help='Path to velbar file(s)', type=Path, nargs='+', default=[])
     cliparser.add_argument('--stsbar', help='Path to stsbar file(s)', type=Path, nargs='+', default=[])
