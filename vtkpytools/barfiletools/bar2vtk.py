@@ -332,12 +332,6 @@ def tomlReceipt(args: dict, tomlMetadata: dict):
         with tomlPath.open(mode='w') as file:
             pytomlpp.dump(tomldict, file)
 
-def _convert2TomlTypes(val, convertArray: list):
-    for typeobj, convert in convertArray:
-        print('\tLooping through stuff', typeobj, convert)
-        if isinstance(val, typeobj):
-            return convert(val)
-
 def _convertArray2TomlTypes(array, convertArray: list):
     """Recursively convert objects in array to toml compatible objects based on convertArray
 
@@ -366,4 +360,3 @@ def _convertArray2TomlTypes(array, convertArray: list):
                     array[i] = convert(item)
             if isinstance(item, (list, dict, tuple)):
                 _convertArray2TomlTypes(item, convertArray)
-
