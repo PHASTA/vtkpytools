@@ -8,3 +8,6 @@ _scripts
 
 # example result files
 example/bar2vtk/result/*
+
+# testing
+.coverage

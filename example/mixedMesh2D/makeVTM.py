@@ -14,7 +14,7 @@ import vtkpytools as vpt
 #%% ---- File inputs ----
     # Existing files
 coordsPath = Path('mixedmesh.crd')
-connecPath = Path('mixedmesh.ien')
+connecPath = Path('mixedmesh.cnn')
 
 vtmPath = Path('result/mixedmesh.vtm')
 

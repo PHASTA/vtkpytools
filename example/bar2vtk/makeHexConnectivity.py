@@ -2,8 +2,8 @@ import numpy as np
 from pathlib import Path
 
 nypnts = 280
-nxpnts = 1247
-connectivityFilePath = Path('TruncBump2d_Squares.cnn')
+nxpnts = 20
+connectivityFilePath = Path('meshFiles/geom.cnn')
 
 nxcells = nxpnts - 1
 nycells = nypnts - 1

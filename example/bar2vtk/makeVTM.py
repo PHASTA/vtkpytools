@@ -13,8 +13,8 @@ import vtkpytools as vpt
 
 #%% ---- File inputs ----
     # Existing files
-coordsPath = Path('meshFiles/TruncBump2d_woNPoints.crd')
-connecPath = Path('meshFiles/TruncBump2d_Squares.cnn')
+coordsPath = Path('meshFiles/geom.crd')
+connecPath = Path('meshFiles/geom.cnn')
 
 vtmPath = Path('result/exampleMesh.vtm')
 
