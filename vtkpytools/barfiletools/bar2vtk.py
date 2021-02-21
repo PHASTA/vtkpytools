@@ -128,17 +128,26 @@ def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
     Parameters
     ----------
     blankvtmfile : Path
-        blankvtmfile
+        Path to blank VTM file. Data is loaded onto this file and then saved to
+        different file. VTM file should contain 'grid' and 'wall' blocks.
     barfiledir : Path
-        barfiledir
+        Directory to where the velbar and stsbar files are located
     timestep : str
-        timestep
+        String of which timestep the data should be loaded from. Can either be
+        a single integer ('1000') or two integers delimited with a -
+        ('1000-2000'). The later implies that a split timewindow should be
+        calculated.
     ts0 : int
-        ts0
+        The timestep number where the velbar and stsbar averaging started. Note
+        this is only used if a split timewindow calculation is requested.
+        (Default: -1).
     new_file_prefix : str
-        new_file_prefix
+        If given, the newly created file will take the form of
+        '{new_file_prefix}_{timestep}.vtm'. If not given, the file prefix will
+        be the same as blankvtmfile. (Default: '').
     outpath : Path
-        outpath
+        Path where the new file should be written. If not given, the new file
+        will be placed in the current working directory.
     velonly : bool
         Do not include the stsbar file. (Default: False)
     debug : bool
@@ -147,9 +156,9 @@ def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
     asciidata : bool
         Whether file paths are in ASCII format. (Default: False)
     velbar : List of Path
-        Path(s) to velbar files. If doing time windows, must have two Paths
+        Path(s) to velbar files. If doing time windows, must have two Paths. (Default: [])
     stsbar : List of Path
-        Path(s) to stsbar files. If doing time windows, must have two Paths
+        Path(s) to stsbar files. If doing time windows, must have two Paths. (Default: [])
     """
 
     ## ---- Process/check script arguments
