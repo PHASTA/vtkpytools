@@ -186,7 +186,7 @@ def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
     else:
         vtmName = Path(os.path.splitext(blankvtmfile.name)[0] + '_' + timestep + '.vtm')
 
-    vtmPath = (outpath if outpath else blankvtmfile.parent) / vtmName
+    vtmPath = (outpath if outpath else os.getcwd()) / vtmName
 
     velbarReader = np.loadtxt if asciidata else binaryVelbar
     stsbarReader = np.loadtxt if asciidata else binaryStsbar
