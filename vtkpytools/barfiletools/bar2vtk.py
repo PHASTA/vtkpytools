@@ -8,10 +8,10 @@ from .data import binaryVelbar, binaryStsbar, calcReynoldsStresses, compute_vort
 from ..common import globFile
 from .._version import __version__
 
-def bar2vtk_main():
+def bar2vtk_main(args=None):
     """Function that runs the "binary" bar2vtk"""
 
-    argsdict = bar2vtk_parse()
+    argsdict = bar2vtk_parse(args)
 
     if argsdict['subparser_name'] == 'cli':
         bar2vtkargs = argsdict.copy()
@@ -39,7 +39,7 @@ def bar2vtk_main():
     tomlMetadata = bar2vtk_function(**bar2vtkargs, returnTomlMetadata=True)
     tomlReceipt(bar2vtkargs, tomlMetadata)
 
-def bar2vtk_parse():
+def bar2vtk_parse(args=None):
     GeneralDescription="""Tool for putting velbar and stsbar data onto a vtm grid."""
 
     ModeDescription="""There are two modes: cli and toml. Run:
@@ -113,7 +113,7 @@ def bar2vtk_parse():
     tomlparser.add_argument('tomlfile', nargs='?', help='Run bar2vtk using toml config file',
                             type=Path)
 
-    args = vars(parser.parse_args())
+    args = vars(parser.parse_args(args))
 
     return args
 
