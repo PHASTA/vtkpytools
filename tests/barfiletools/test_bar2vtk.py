@@ -5,6 +5,7 @@ import shutil, os, sys
 import vtkpytools as vpt
 from pathlib import Path, PurePath
 
+FIXTURE_DIR = Path(__file__).parent.resolve()
 
 def test_convertArray2TomlTypes():
     test = {'vtkfile': Path('result/exampleMesh.vtm'),
@@ -25,14 +26,17 @@ def test_convertArray2TomlTypes():
     TestCase().assertDictEqual(test, solution)
 
 @pytest.fixture()
-def fixture_bar2vtk_exampledirectory(tmp_path):
-    shutil.copytree('./example/bar2vtk/data', tmp_path / 'data')
-    shutil.copytree('./example/bar2vtk/meshFiles', tmp_path / 'meshFiles')
-    shutil.copy('./example/bar2vtk/makeVTM.py', tmp_path)
+def fixture_bar2vtk_exampledata(tmp_path):
+    shutil.copytree(FIXTURE_DIR / '../../example/bar2vtk/data', tmp_path / 'data')
+    shutil.copytree(FIXTURE_DIR / '../../example/bar2vtk/meshFiles', tmp_path / 'meshFiles')
+    shutil.copy(FIXTURE_DIR / '../../example/bar2vtk/makeVTM.py', tmp_path)
+
+    cwd = os.getcwd()
     os.chdir(tmp_path)
     exec(open('makeVTM.py').read())
+    yield
+    os.chdir(cwd)
 
-def test_bar2vtk_exampledirectory(fixture_bar2vtk_exampledirectory, tmp_path):
+def test_bar2vtk_exampledata(fixture_bar2vtk_exampledata, tmp_path):
     sys.argv = 'bar2vtk cli result/exampleMesh.vtm data 10000'.split(' ')
     vpt.bar2vtk_bin()
-    pass
