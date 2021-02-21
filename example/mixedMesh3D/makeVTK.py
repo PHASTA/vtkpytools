@@ -12,13 +12,13 @@ sys.path.insert(0, '../../')
 import vtkpytools as vpt
 
 #%% ---- File inputs ----
-# Change meshtype to either "HexTetWedge" or 'TetWedge' to run either example
+# Change meshtype to either "HexPyrTetWedge" or 'TetWedge' to run either example
 meshtype='TetWedge'
 
 coordsPath = Path('./mixedMesh3D_{}.crd'.format(meshtype))
 connecPath = Path('./mixedMesh3D_{}.cnn'.format(meshtype))
 
-vtkPath = Path('result/mixedmesh3d_{}.vtk'.format(meshtype))
+vtkPath = Path('./result/mixedmesh3d_{}.vtk'.format(meshtype))
 
 #%% ---- Read in Files ----
 coords = np.loadtxt(coordsPath, skiprows=1)
@@ -34,4 +34,3 @@ connec = connec[:,:] - 1 # node index must be index-by-0, so subtracting one fro
     # Create the 2D grid from the given information
 grid = vpt.form3DGrid(coords, connectivity_array=connec)
 grid.save(vtkPath)
-
