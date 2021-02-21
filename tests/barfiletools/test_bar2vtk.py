@@ -39,4 +39,4 @@ def fixture_bar2vtk_exampledata(tmp_path):
 
 def test_bar2vtk_exampledata(fixture_bar2vtk_exampledata, tmp_path):
     sys.argv = 'bar2vtk cli result/exampleMesh.vtm data 10000'.split(' ')
-    vpt.bar2vtk_bin()
+    vpt.bar2vtk_main()
