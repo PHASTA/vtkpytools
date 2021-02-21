@@ -8,7 +8,7 @@ from .data import binaryVelbar, binaryStsbar, calcReynoldsStresses, compute_vort
 from ..common import globFile
 from .._version import __version__
 
-def bar2vtk_bin():
+def bar2vtk_main():
     """Function that runs the "binary" bar2vtk"""
 
     argsdict = bar2vtk_parse()
