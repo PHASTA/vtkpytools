@@ -288,6 +288,15 @@ def blankToml(tomlfilepath: Path, returndict=False):
     if returndict: return tomldict
 
 def tomlReceipt(args: dict, tomlMetadata: dict):
+    """Creates a receipt of the created file
+
+    Parameters
+    ----------
+    args : dict
+        Arguments passed to bar2vtk_function
+    tomlMetadata : dict
+        Extra metadata given by bar2vtk_function
+    """
 
     convertArray = [(PurePath, lambda x: x.as_posix()),
                     (type(None), lambda x: '')
@@ -330,6 +339,19 @@ def _convert2TomlTypes(val, convertArray: list):
             return convert(val)
 
 def _convertArray2TomlTypes(array, convertArray: list):
+    """Recursively convert objects in array to toml compatible objects based on convertArray
+
+    Parameters
+    ----------
+    array : dict or list
+        Array of objects to be converted. Can be either dictionary (which will
+        only convert values in the dictionary) or list.
+    convertArray : list
+        List of conversion rules. Each item should be a tuple/list whose first
+        entry is the type to be converted and the second entry is the function
+        that converts it. For example `(float, lambda x: str(x))` would convert
+        types to strings.
+    """
     if isinstance(array, dict):
         for key, val in array.items():
             for typeobj, convert in convertArray:
