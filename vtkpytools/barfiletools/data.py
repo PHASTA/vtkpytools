@@ -1,6 +1,5 @@
 import numpy as np
 import vtk
-from .core import *
 from ..common import *
 from scipy.io import FortranFile
 import warnings

@@ -8,10 +8,10 @@ from .data import binaryVelbar, binaryStsbar, calcReynoldsStresses, compute_vort
 from ..common import globFile
 from .._version import __version__
 
-def bar2vtk_bin():
+def bar2vtk_main(args=None):
     """Function that runs the "binary" bar2vtk"""
 
-    argsdict = bar2vtk_parse()
+    argsdict = bar2vtk_parse(args)
 
     if argsdict['subparser_name'] == 'cli':
         bar2vtkargs = argsdict.copy()
@@ -35,12 +35,11 @@ def bar2vtk_bin():
                         val[i] = Path(item)
                 else:
                     bar2vtkargs[key] = Path(val)
-    print(bar2vtkargs)
 
     tomlMetadata = bar2vtk_function(**bar2vtkargs, returnTomlMetadata=True)
     tomlReceipt(bar2vtkargs, tomlMetadata)
 
-def bar2vtk_parse():
+def bar2vtk_parse(args=None):
     GeneralDescription="""Tool for putting velbar and stsbar data onto a vtm grid."""
 
     ModeDescription="""There are two modes: cli and toml. Run:
@@ -114,7 +113,7 @@ def bar2vtk_parse():
     tomlparser.add_argument('tomlfile', nargs='?', help='Run bar2vtk using toml config file',
                             type=Path)
 
-    args = vars(parser.parse_args())
+    args = vars(parser.parse_args(args))
 
     return args
 
@@ -129,17 +128,26 @@ def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
     Parameters
     ----------
     blankvtmfile : Path
-        blankvtmfile
+        Path to blank VTM file. Data is loaded onto this file and then saved to
+        different file. VTM file should contain 'grid' and 'wall' blocks.
     barfiledir : Path
-        barfiledir
+        Directory to where the velbar and stsbar files are located
     timestep : str
-        timestep
+        String of which timestep the data should be loaded from. Can either be
+        a single integer ('1000') or two integers delimited with a -
+        ('1000-2000'). The later implies that a split timewindow should be
+        calculated.
     ts0 : int
-        ts0
+        The timestep number where the velbar and stsbar averaging started. Note
+        this is only used if a split timewindow calculation is requested.
+        (Default: -1).
     new_file_prefix : str
-        new_file_prefix
+        If given, the newly created file will take the form of
+        '{new_file_prefix}_{timestep}.vtm'. If not given, the file prefix will
+        be the same as blankvtmfile. (Default: '').
     outpath : Path
-        outpath
+        Path where the new file should be written. If not given, the new file
+        will be placed in the current working directory.
     velonly : bool
         Do not include the stsbar file. (Default: False)
     debug : bool
@@ -148,9 +156,9 @@ def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
     asciidata : bool
         Whether file paths are in ASCII format. (Default: False)
     velbar : List of Path
-        Path(s) to velbar files. If doing time windows, must have two Paths
+        Path(s) to velbar files. If doing time windows, must have two Paths. (Default: [])
     stsbar : List of Path
-        Path(s) to stsbar files. If doing time windows, must have two Paths
+        Path(s) to stsbar files. If doing time windows, must have two Paths. (Default: [])
     """
 
     ## ---- Process/check script arguments
@@ -178,57 +186,20 @@ def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
     else:
         vtmName = Path(os.path.splitext(blankvtmfile.name)[0] + '_' + timestep + '.vtm')
 
-    vtmPath = (outpath if outpath else blankvtmfile.parent) / vtmName
+    vtmPath = (outpath if outpath else os.getcwd()) / vtmName
 
     velbarReader = np.loadtxt if asciidata else binaryVelbar
     stsbarReader = np.loadtxt if asciidata else binaryStsbar
 
     ## ---- Loading data arrays
-    if '-' in timestep:
-    # Create timestep windows
-        if ts0 == -1:
-            raise RuntimeError("Starting timestep of bar field averaging required (ts0)")
-
-        timesteps = [int(x) for x in timestep.split('-')]
-        print('Creating timewindow between {} and {}'.format(timesteps[0], timesteps[1]))
-        if not velbar:
-            velbarPaths = []; stsbarPaths = []
-            for timestep in timesteps:
-                velbarPaths.append(globFile('velbar*.{}*'.format(timestep), barfiledir))
-
-                if not velonly:
-                    stsbarPaths.append(globFile('stsbar*.{}*'.format(timestep), barfiledir))
-        else:
-            velbarPaths = velbar
-            stsbarPaths = stsbar
-
-        print('Using data files:\n\t{}\t{}'.format(velbarPaths[0], velbarPaths[1]))
-        if not velonly:
-            print('\t{}\t{}'.format(stsbarPaths[0], stsbarPaths[1]))
-
-        velbarArrays = []; stsbarArrays = []
-        for i in range(2):
-            velbarArrays.append(velbarReader(velbarPaths[i]))
-            if not velonly:
-                stsbarArrays.append(stsbarReader(stsbarPaths[i]))
-
-        velbarArray = (velbarArrays[1]*(timesteps[1] - ts0) -
-                    velbarArrays[0]*(timesteps[0] - ts0)) / (timesteps[1] - timesteps[0])
-        if not velonly:
-            stsbarArray = (stsbarArrays[1]*(timesteps[1] - ts0) -
-                        stsbarArrays[0]*(timesteps[0] - ts0)) / (timesteps[1] - timesteps[0])
-        print('Finished computing timestep window')
-    else:
-        velbarPaths = velbar if velbar else \
-            (globFile('velbar*.{}*'.format(timestep), barfiledir))
-        print('Using data files:\n\t{}'.format(velbarPaths))
-        velbarArray = velbarReader(velbarPaths)
-
-        if not velonly:
-            stsbarPaths = stsbar if stsbar else \
-                (globFile('stsbar*.{}*'.format(timestep), barfiledir))
-            print('\t{}'.format(stsbarPaths))
-            stsbarArray = stsbarReader(stsbarPaths)
+    if '-' in timestep and ts0 == -1:
+        raise RuntimeError("Starting timestep of bar field averaging required (ts0)")
+    print('Using data files:')
+    velbarArray, velbarPaths = getBarData(velbar, timestep, barfiledir,
+                                              velbarReader, ts0, 'velbar')
+    if not velonly:
+        stsbarArray, stsbarPaths = getBarData(stsbar, timestep, barfiledir,
+                                                  stsbarReader, ts0, 'stsbar')
 
     ## ---- Load DataBlock
     dataBlock = pv.MultiBlock(blankvtmfile.as_posix())
@@ -266,6 +237,36 @@ def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
 
         return tomlMetadata
 
+def getBarData(_bar: list, timestep: str, barfiledir: Path, _barReader,
+                   ts0: int, globname: str):
+    """Get array of data from bar2vtk arguments"""
+    if '-' in timestep:
+        timesteps = [int(x) for x in timestep.split('-')]
+        print('Creating timewindow between {} and {}'.format(timesteps[0], timesteps[1]))
+        if not _bar:
+            _barPaths = []
+            for timestep in timesteps:
+                _barPaths.append(globFile('{}*.{}*'.format(globname, timestep), barfiledir))
+        else:
+            _barPaths = _bar
+
+        print('\t{}\t{}'.format(_barPaths[0], _barPaths[1]))
+        _barArrays = []
+        for i in range(2):
+            _barArrays.append(_barReader(_barPaths[i]))
+
+        _barArray = (_barArrays[1]*(timesteps[1] - ts0) -
+                     _barArrays[0]*(timesteps[0] - ts0)) / (timesteps[1] - timesteps[0])
+
+        print('Finished computing timestep window')
+    else:
+        _barPaths = _bar if _bar else \
+            (globFile('{}*.{}*'.format(globname, timestep), barfiledir))
+        print('\t{}'.format(_barPaths))
+        _barArray = _barReader(_barPaths)
+
+    return _barArray, _barPaths
+
 def blankToml(tomlfilepath: Path, returndict=False):
     """Write blank toml file to tomlfilepath"""
     tomldict = { 'arguments': {
@@ -287,6 +288,15 @@ def blankToml(tomlfilepath: Path, returndict=False):
     if returndict: return tomldict
 
 def tomlReceipt(args: dict, tomlMetadata: dict):
+    """Creates a receipt of the created file
+
+    Parameters
+    ----------
+    args : dict
+        Arguments passed to bar2vtk_function
+    tomlMetadata : dict
+        Extra metadata given by bar2vtk_function
+    """
 
     convertArray = [(PurePath, lambda x: x.as_posix()),
                     (type(None), lambda x: '')
@@ -322,13 +332,20 @@ def tomlReceipt(args: dict, tomlMetadata: dict):
         with tomlPath.open(mode='w') as file:
             pytomlpp.dump(tomldict, file)
 
-def _convert2TomlTypes(val, convertArray: list):
-    for typeobj, convert in convertArray:
-        print('\tLooping through stuff', typeobj, convert)
-        if isinstance(val, typeobj):
-            return convert(val)
-
 def _convertArray2TomlTypes(array, convertArray: list):
+    """Recursively convert objects in array to toml compatible objects based on convertArray
+
+    Parameters
+    ----------
+    array : dict or list
+        Array of objects to be converted. Can be either dictionary (which will
+        only convert values in the dictionary) or list.
+    convertArray : list
+        List of conversion rules. Each item should be a tuple/list whose first
+        entry is the type to be converted and the second entry is the function
+        that converts it. For example `(float, lambda x: str(x))` would convert
+        types to strings.
+    """
     if isinstance(array, dict):
         for key, val in array.items():
             for typeobj, convert in convertArray:
@@ -343,4 +360,3 @@ def _convertArray2TomlTypes(array, convertArray: list):
                     array[i] = convert(item)
             if isinstance(item, (list, dict, tuple)):
                 _convertArray2TomlTypes(item, convertArray)
-
