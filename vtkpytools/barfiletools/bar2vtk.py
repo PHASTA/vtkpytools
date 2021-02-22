@@ -99,7 +99,7 @@ def bar2vtk_parse(args=None):
                         help='Prefix for the new file. Will have timestep appended.',
                         type=str)
     cliparser.add_argument('--outpath', help='Custom path for the output VTM file.'
-                                        ' blankvtmfile path used if not given', type=Path)
+                                        ' Current directory used if not given', type=Path)
     cliparser.add_argument('--velonly', help='Only process velbar file', action='store_true')
     cliparser.add_argument('--debug', help='Load raw stsbar data into VTM', action='store_true')
     cliparser.add_argument('-a', '--ascii', help='Read *bar files as ASCII', action='store_true')
