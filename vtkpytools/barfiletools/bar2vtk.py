@@ -246,7 +246,7 @@ def getBarData(_bar: list, timestep: str, barfiledir: Path, _barReader,
         if not _bar:
             _barPaths = []
             for timestep in timesteps:
-                _barPaths.append(globFile('{}*.{}*'.format(globname, timestep), barfiledir))
+                _barPaths.append(globFile(r'^{}\.{}(?![\d|-]).*$'.format(globname, timestep), barfiledir))
         else:
             _barPaths = _bar
 
