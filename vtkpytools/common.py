@@ -3,6 +3,7 @@ import pyvista as pv
 import numpy as np
 from scipy.io import FortranFile
 from pathlib import Path
+import re
 
 def getGeometricSeries(maxval, minval, growthrate, include_zero=True) -> np.ndarray:
     """Return geometric progression based on inputs.
@@ -135,7 +136,7 @@ def readBinaryArray(path, ncols) -> np.ndarray:
 
     return array
 
-def globFile(globstring, path: Path) -> Path:
+def globFile(globstring, path: Path, regex=False) -> Path:
     """ Glob for one file in directory, then return.
 
     If it finds more than one file matching the globstring, it will error out.
@@ -146,18 +147,36 @@ def globFile(globstring, path: Path) -> Path:
         String used to glob for file
     path : Path
         Path where file should be searched for
+    regex : bool
+        Whether globstring should be interpreted by Python regex (default is
+        False)
     """
-    globlist = list(path.glob(globstring))
-    if len(globlist) == 1:
-        assert globlist[0].is_file()
-        return globlist[0]
-    elif len(globlist) > 1:
-        raise RuntimeError('Found multiple files matching'
-                           '"{}" in {}:\n\t{}'.format(globstring, path,
-                                                  '\n\t'.join([x.as_posix() for x in globlist])))
-    else:
-        raise RuntimeError('Could not find file matching'
-                            '"{}" in {}'.format(globstring, path))
+    if not regex:
+        globlist = list(path.glob(globstring))
+        if len(globlist) == 1:
+            assert globlist[0].is_file()
+            return globlist[0]
+        elif len(globlist) > 1:
+            raise RuntimeError('Found multiple files matching'
+                            '"{}" in {}:\n\t{}'.format(globstring, path,
+                                                    '\n\t'.join([x.as_posix() for x in globlist])))
+        else:
+            raise RuntimeError('Could not find file matching'
+                                '"{}" in {}'.format(globstring, path))
+    elif regex:
+        filestrings = [x.name for x in path.iterdir()]
+        globlist = list(filter(re.compile(globstring).match, filestrings))
+        if len(globlist) == 1:
+            filePath = path / Path(globlist[0])
+            assert filePath.is_file()
+            return filePath
+        elif len(globlist) > 1:
+            raise RuntimeError('Found multiple files matching'
+                            '"{}" in {}:\n\t{}'.format(globstring, path,
+                                                    '\n\t'.join(globlist)))
+        else:
+            raise RuntimeError('Could not find file matching'
+                                '"{}" in {}'.format(globstring, path))
 
 def symmetric2FullTensor(tensor_array) -> np.ndarray:
     """ Turn (n, 6) shape array of tensor entries into (n, 3, 3)
