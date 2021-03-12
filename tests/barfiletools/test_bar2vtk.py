@@ -40,3 +40,8 @@ def fixture_bar2vtk_exampledata(tmp_path):
 def test_bar2vtk_exampledata(fixture_bar2vtk_exampledata, tmp_path):
     sys.argv = 'bar2vtk cli result/exampleMesh.vtm data 10000'.split(' ')
     vpt.bar2vtk_main()
+
+def test_bar2vtk_fileGlobbing(fixture_bar2vtk_exampledata, tmp_path):
+    for testString in ['velbar', 'stsbar']:
+        (tmp_path / 'data/{}.100000.1'.format(testString)).touch()
+    vpt.bar2vtk_main('cli result/exampleMesh.vtm data 10000'.split(' '))

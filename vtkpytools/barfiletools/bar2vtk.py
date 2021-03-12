@@ -237,16 +237,16 @@ def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
 
         return tomlMetadata
 
-def getBarData(_bar: list, timestep: str, barfiledir: Path, _barReader,
+def getBarData(_bar: list, timestep_str: str, barfiledir: Path, _barReader,
                    ts0: int, globname: str):
     """Get array of data from bar2vtk arguments"""
-    if '-' in timestep:
-        timesteps = [int(x) for x in timestep.split('-')]
+    if '-' in timestep_str:
+        timesteps = [int(x) for x in timestep_str.split('-')]
         print('Creating timewindow between {} and {}'.format(timesteps[0], timesteps[1]))
         if not _bar:
             _barPaths = []
             for timestep in timesteps:
-                _barPaths.append(globFile(r'^{}\.{}(?![\d|-]).*$'.format(globname, timestep), barfiledir))
+                _barPaths.append(globFile(r'^{}\.{}(?![\d|-]).*$'.format(globname, timestep), barfiledir, regex=True))
         else:
             _barPaths = _bar
 
@@ -261,7 +261,7 @@ def getBarData(_bar: list, timestep: str, barfiledir: Path, _barReader,
         print('Finished computing timestep window')
     else:
         _barPaths = _bar if _bar else \
-            (globFile('{}*.{}*'.format(globname, timestep), barfiledir))
+            (globFile(r'^{}\.{}(?![\d|-]).*$'.format(globname, timestep_str), barfiledir, regex=True))
         print('\t{}'.format(_barPaths))
         _barArray = _barReader(_barPaths)
 
