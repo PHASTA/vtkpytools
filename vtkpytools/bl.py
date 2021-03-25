@@ -132,7 +132,7 @@ def delta_percent(U, wall_distance, nwallpnts: int, percent: float, Uedge=None) 
     U = U.reshape(nwallpnts, samples_per_wallpnt)
     wall_distance = wall_distance.reshape(nwallpnts, samples_per_wallpnt)
 
-    if not Uedge:
+    if Uedge is None:
         Uedge = U[:,-1]
 
     index = np.argmax(U > percent*Uedge[:, None], axis=1)
