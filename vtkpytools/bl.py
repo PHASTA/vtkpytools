@@ -9,37 +9,47 @@ from numpy import ndarray
 import IPython.core.debugger as ipdb
 # import ipdb
 
+def sampleAlongVectors(dataBlock, sample_dists, vectors, locations) -> pv.PolyData:
+    """Sample dataBlock at sample_dists away from locations in vectors direction
 
-def calcBoundaryLayerStats(dataBlock, line_walldists, bl_functions, velocity_name, normals):
+    Each nth location in 'locations' corresponds with the nth vector in
+    'vectors'. At each location, a sample is take at each sample_dist in
+    'sample_dists' in the direction of the location's corresponding vector.
 
-    # Create all the line points at once
-    # Create a PolyData object from JUST the points vtk.PolyData(points)
-    # Sample to the points from the grid
+    In other words, a "profile" is taken at each location. The vector defines
+    the direction the profile is taken (with respect to the location itself)
+    and sample_dists defines sample locations along that direction.
 
-    # wall = dataBlock['wall']
-    # for i, point in enumerate(wall.points):
-    #     profile = sampleDataBlockProfile(dataBlock, line_walldists, normal=normals[i])
-    #     for function in bl_functions:
-    #         outputs[name] = function(profile)
+    Parameters
+    ----------
+    dataBlock : pyvista.MultiBlock
+        dataBlock from where data will be interpolated. Must contain 'grid' and 'wall' VTK objects.
+    sample_dists : (S) ndarray
+        The distances away from location along the vectors
+    vectors : (L, 3) ndarray
+        Unit vectors that define the direction the samples should be taken away
+        from location.
+    locations : (L, 3) ndarray
+        Coordinates from which samples should start from
 
-    # dataBlock['wall']['delta_displace'] = delta_displace
-    # dataBlock['wall']['delta_mom'] = delta_mom
-    # dataBlock['wall']['Re_theta'] = Re_theta
-
-    return dataBlock
-
-def sampleBLStuff(dataBlock, sample_dists, vectors, locations) -> pv.PolyData:
+    Returns
+    -------
+    samples: pv.PolyData
+        Contains L*S data points in S-major order (ie. [:S] contains the all
+        the samples associated with location[0])
+    """
 
     nlocations = locations.shape[0]
-    ntotsamples = nlocations*len(sample_dists)
     nprofilesamples = len(sample_dists)
+    ntotsamples = nlocations*nprofilesamples
+
     profiles = np.einsum('i,jk->jik', sample_dists, vectors)
     profiles += locations[:, None, :]
     profile_pnts = profiles.reshape(ntotsamples, 3)
 
     sample_pnts = pv.wrap(profile_pnts)
     sample_pnts = sample_pnts.sample(dataBlock['grid'])
-    sample_pnts['WallDistance'] = np.repeat(sample_dists, locations.shape[0])
+    sample_pnts['WallDistance'] = np.tile(sample_dists, locations.shape[0])
     # Tracer()()
     return sample_pnts
 
