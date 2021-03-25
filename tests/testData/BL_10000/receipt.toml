@@ -1,0 +1,25 @@
+[arguments]
+asciidata = false
+barfiledir = 'data'
+blankvtmfile = 'result/exampleMesh.vtm'
+debug = false
+new_file_prefix = ''
+outpath = 'result'
+stsbar = []
+timestep = '10000'
+ts0 = -1
+velbar = []
+velonly = false
+
+[metadata]
+created = 2021-03-11T14:59:49.360479
+directory = '/users/jrwrigh/misc/vtkpytools/example/bar2vtk'
+python_version = '3.7.7'
+pyvista_version = '0.25.3'
+vtk_version = '8.2.0'
+vtkpytools_version = '0.3.dev0'
+
+    [metadata.bar2vtk_vars]
+    stsbarPaths = 'data/stsbar.10000.1'
+    velbarPaths = 'data/velbar.10000.1'
+    vtmPath = 'result/exampleMesh_10000.vtm'
