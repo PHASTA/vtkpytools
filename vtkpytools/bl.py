@@ -140,8 +140,10 @@ def delta_velInt(U, wall_distance, nwallpnts: int,
         return {'delta_displace': delta_displace_lambda()}
     elif not displace and momentum:
         return {'delta_momentum': delta_momentum_lambda()}
-    else:
+    elif displace and momentum:
         return {'delta_displace': delta_displace_lambda(), 'delta_momentum': delta_momentum_lambda()}
+    else:
+        return {}
 
 
 def delta_percent(U, wall_distance, nwallpnts: int, percent: float, Uedge=None) -> ndarray:
