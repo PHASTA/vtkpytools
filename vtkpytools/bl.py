@@ -50,7 +50,6 @@ def sampleAlongVectors(dataBlock, sample_dists, vectors, locations) -> pv.PolyDa
     sample_pnts = pv.wrap(profile_pnts)
     sample_pnts = sample_pnts.sample(dataBlock['grid'])
     sample_pnts['WallDistance'] = np.tile(sample_dists, locations.shape[0])
-    # Tracer()()
     return sample_pnts
 
 def integratedVortBLThickness(vorticity, wall_distance, delta_percent=0.995,
@@ -78,18 +77,72 @@ def integratedVortBLThickness(vorticity, wall_distance, delta_percent=0.995,
 # def cumulativeIntegratedVorticity(sample_pnts)
 #
 
-def delta_momentum(U: ndarray, wall_distance: ndarray, nwallpnts: int) -> ndarray:
-    samples_per_wallpnt = int(U.size/nwallpnts)
+def delta_velInt(U, wall_distance, nwallpnts: int,
+                 displace: bool = False, momentum: bool = False, Uedge=None) -> dict:
+    """Calculate velocity-integrated BL thicknesses (momentum and displacement)
 
-    U = U.reshape(nwallpnts, samples_per_wallpnt)
-    wall_distance = wall_distance.reshape(nwallpnts, samples_per_wallpnt)
+    Displacement thickness, d_i,  defined as integrating:
 
-    Uedge = U[:, -1]
-    # Uedge = np.ones((U.shape[0]))
+        (1 - U_i(wall_distance)/Uedge_i)
 
-    delta_mom = np.trapz((1 - U/Uedge[:,None])*(U/Uedge[:,None]), wall_distance, axis=1)
-    # ipdb.set_trace()
-    return delta_mom
+    over the full profile height, with i indexing the wall point.
+
+    Momentum thickness, m_i,  defined as integrating:
+
+        (1 - U_i(wall_distance)/Uedge_i) * (U_i(wall_distance)/Uedge_i)
+
+    over the full profile height, with i indexing the wall point.
+
+    Parameters
+    ----------
+    U : [nwallpnts*nprofilesamples] ndarray
+        Quantity to base boundary layer height on (generally streamwise
+        velocity)
+    wall_distance : [nwallpnts*nprofilesamples] ndarray
+        Distance to wall for all the sample points
+    nwallpnts : int
+        Number of wall locations used in the sampling of U. The size of U and
+        wall_distance must be evenly divisible by nwallpnts.
+    displace : bool, optional
+        Whether to calculate displacement thickness
+    momentum : bool, optional
+        Whether to calcualte momentum thickness
+    Uedge : [nwallpnts] ndarray, optional
+        Sets the values for the edge velocity used in calculating the boundary
+        layer height. If not given, the last sample point for each wall point
+        profile will be used (Default: None).
+
+    Returns
+    -------
+    Dictionary with the following items optionally defined:
+
+    delta_displace: ndarray, optional
+        Displacement thickness. Not passed if displace=False
+
+    delta_momentum: ndarray, optional
+        Momentum thickness. Not passed if momentum=False
+    """
+
+    if U.size % nwallpnts != 0:
+        raise RuntimeError('Number of data points ({}) not evenly divisible by '
+                           'nwallpnts ({}). Cannot reshape array.'.format(U.size, nwallpnts))
+
+    U = U.reshape(nwallpnts, -1)
+    wall_distance = wall_distance.reshape(nwallpnts, -1)
+
+    if Uedge is None:
+        Uedge = U[:,-1]
+
+    delta_displace_lambda = lambda : np.trapz((1 - U/Uedge[:,None]), wall_distance, axis=1)
+    delta_momentum_lambda = lambda : np.trapz((1 - U/Uedge[:,None])*(U/Uedge[:,None]), wall_distance, axis=1)
+
+    if displace and not momentum:
+        return {'delta_displace': delta_displace_lambda()}
+    elif not displace and momentum:
+        return {'delta_momentum': delta_momentum_lambda()}
+    else:
+        return {'delta_displace': delta_displace_lambda(), 'delta_momentum': delta_momentum_lambda()}
+
 
 def delta_percent(U, wall_distance, nwallpnts: int, percent: float, Uedge=None) -> ndarray:
     """Calculate the boundary layer height based on percentage of U
@@ -127,10 +180,8 @@ def delta_percent(U, wall_distance, nwallpnts: int, percent: float, Uedge=None) 
         raise RuntimeError('Number of data points ({}) not evenly divisible by '
                            'nwallpnts ({}). Cannot reshape array.'.format(U.size, nwallpnts))
 
-    samples_per_wallpnt = int(U.size/nwallpnts)
-
-    U = U.reshape(nwallpnts, samples_per_wallpnt)
-    wall_distance = wall_distance.reshape(nwallpnts, samples_per_wallpnt)
+    U = U.reshape(nwallpnts, -1)
+    wall_distance = wall_distance.reshape(nwallpnts, -1)
 
     if Uedge is None:
         Uedge = U[:,-1]
@@ -140,17 +191,3 @@ def delta_percent(U, wall_distance, nwallpnts: int, percent: float, Uedge=None) 
     slopes = (wall_distance[W, index] - wall_distance[W, index -1]) / (U[W, index] - U[W, index -1])
 
     return wall_distance[W, index-1] + (percent*Uedge - U[W, index-1])*slopes
-
-
-# def velocityBLThickness(U, wall_distance, delta_percent=0.995,
-#                          delta_displace=False, delta_momentum=False) -> dict:
-
-#     Uedge = U[-1]
-
-#     percent_index = np.argmax(U > delta_percent*Uedge)
-#     delta_percent = np.interp(delta_percent*Uedge, U[percent_index-1:percent_index+1],
-#                                     wall_distance[percent_index-1:percent_index+1])
-
-#     delta_displace = np.trapz(1 - U/Uedge, wall_distance) if delta_displace else None
-#     delta_mom = np.trapz((1 - U/Uedge)*(U/Uedge), wall_distance) if delta_mom else None
-
