@@ -91,6 +91,56 @@ def delta_momentum(U: ndarray, wall_distance: ndarray, nwallpnts: int) -> ndarra
     # ipdb.set_trace()
     return delta_mom
 
+def delta_percent(U, wall_distance, nwallpnts: int, percent: float, Uedge=None) -> ndarray:
+    """Calculate the boundary layer height based on percentage of U
+
+    Define the percent boundary layer thickness as h_i such that
+
+        U_i(h_i) = percent*Uedge_i
+
+    for U_i(wall_distance) and i indexing every wall point.
+
+    Parameters
+    ----------
+    U : [nwallpnts*nprofilesamples] ndarray
+        Quantity to base boundary layer height on (generally streamwise
+        velocity)
+    wall_distance : [nwallpnts*nprofilesamples] ndarray
+        Distance to wall for all the sample points
+    nwallpnts : int
+        Number of wall locations used in the sampling of U. The size of U and
+        wall_distance must be evenly divisible by nwallpnts.
+    percent : float
+        The percentage of the "edge" value that defines the boundary layer
+        height.
+    Uedge : [nwallpnts] ndarray, optional
+        Sets the values for the edge velocity used in calculating the boundary
+        layer height. If not given, the last sample point for each wall point
+        profile will be used (Default: None).
+
+    Returns
+    -------
+    delta_percent: [nwallpnts] ndarray
+    """
+
+    if U.size % nwallpnts != 0:
+        raise RuntimeError('Number of data points ({}) not evenly divisible by '
+                           'nwallpnts ({}). Cannot reshape array.'.format(U.size, nwallpnts))
+
+    samples_per_wallpnt = int(U.size/nwallpnts)
+
+    U = U.reshape(nwallpnts, samples_per_wallpnt)
+    wall_distance = wall_distance.reshape(nwallpnts, samples_per_wallpnt)
+
+    if not Uedge:
+        Uedge = U[:,-1]
+
+    index = np.argmax(U > percent*Uedge[:, None], axis=1)
+    W = np.arange(nwallpnts)
+    slopes = (wall_distance[W, index] - wall_distance[W, index -1]) / (U[W, index] - U[W, index -1])
+
+    return wall_distance[W, index-1] + (percent*Uedge - U[W, index-1])*slopes
+
 
 # def velocityBLThickness(U, wall_distance, delta_percent=0.995,
 #                          delta_displace=False, delta_momentum=False) -> dict:
