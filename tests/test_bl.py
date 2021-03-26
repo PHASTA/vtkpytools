@@ -77,3 +77,41 @@ def test_delta_velInt_base(fix_delta, displace, momentum, Uedge):
     for key, val in result.items():
         assert(val.size == nwallpnts)
         assert(np.allclose(val, correct[key]))
+
+
+def test_delta_velInt_notSameSize(fix_delta):
+    U, wall_dists, nwallpnts, percent = fix_delta
+    with pytest.raises(ValueError):
+        # Raise error if U.size is not evenly divisible by nwallpnts
+        vpt.delta_velInt(U, wall_dists, nwallpnts+7)
+
+
+@pytest.mark.parametrize('Uedge', [None, np.ones(2)*0.75])
+@pytest.mark.parametrize('displace', [True, False])
+@pytest.mark.parametrize('momentum', [True, False])
+@pytest.mark.parametrize('returnUvort', [True, False])
+def test_delta_vortInt_base(fix_delta, displace, momentum, returnUvort, Uedge):
+    if Uedge is None:
+        correct = {'delta_displace':13/16, 'delta_momentum':41/128,
+                   'Uvort': np.tile([0, -9/32, -1/2], 2)}
+    else:
+        correct = {'delta_displace':-13/24, 'delta_momentum':301/288,
+                   'Uvort': np.tile([0, -9/32, -1/2], 2)}
+    U, wall_dists, nwallpnts, percent = fix_delta
+
+    result = vpt.delta_vortInt(U, wall_dists, nwallpnts, displace,
+                               momentum, returnUvort, Uedge)
+
+    for key, val in result.items():
+        if key == 'Uvort':
+            assert(val.size == U.size)
+            assert(np.allclose(val.flatten(), correct[key]))
+        else:
+            assert(val.size == nwallpnts)
+            assert(np.allclose(val, correct[key]))
+
+def test_delta_vortInt_notSameSize(fix_delta):
+    U, wall_dists, nwallpnts, percent = fix_delta
+    with pytest.raises(ValueError):
+        # Raise error if U.size is not evenly divisible by nwallpnts
+        vpt.delta_vortInt(U, wall_dists, nwallpnts+7)
