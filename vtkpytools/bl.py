@@ -7,7 +7,6 @@ from numpy import ndarray
 
 # For debugging only
 import IPython.core.debugger as ipdb
-# import ipdb
 
 def sampleAlongVectors(dataBlock, sample_dists, vectors, locations) -> pv.PolyData:
     """Sample dataBlock at sample_dists away from locations in vectors direction
@@ -74,8 +73,6 @@ def integratedVortBLThickness(vorticity, wall_distance, delta_percent=0.995,
 
     return {'delta_percent':delta_percent, 'delta_displace':delta_displace, 'delta_momentum':delta_momentum}
 
-# def cumulativeIntegratedVorticity(sample_pnts)
-#
 
 def delta_velInt(U, wall_distance, nwallpnts: int,
                  displace: bool = False, momentum: bool = False, Uedge=None) -> dict:
@@ -124,14 +121,13 @@ def delta_velInt(U, wall_distance, nwallpnts: int,
     """
 
     if U.size % nwallpnts != 0:
-        raise RuntimeError('Number of data points ({}) not evenly divisible by '
-                           'nwallpnts ({}). Cannot reshape array.'.format(U.size, nwallpnts))
+        raise ValueError('Number of data points ({}) not evenly divisible by '
+                         'nwallpnts ({}). Cannot reshape array.'.format(U.size, nwallpnts))
 
     U = U.reshape(nwallpnts, -1)
     wall_distance = wall_distance.reshape(nwallpnts, -1)
 
-    if Uedge is None:
-        Uedge = U[:,-1]
+    Uedge = U[:, -1] if Uedge is None else Uedge
 
     delta_displace_lambda = lambda : np.trapz((1 - U/Uedge[:,None]), wall_distance, axis=1)
     delta_momentum_lambda = lambda : np.trapz((1 - U/Uedge[:,None])*(U/Uedge[:,None]), wall_distance, axis=1)
@@ -179,14 +175,13 @@ def delta_percent(U, wall_distance, nwallpnts: int, percent: float, Uedge=None) 
     """
 
     if U.size % nwallpnts != 0:
-        raise RuntimeError('Number of data points ({}) not evenly divisible by '
-                           'nwallpnts ({}). Cannot reshape array.'.format(U.size, nwallpnts))
+        raise ValueError('Number of data points ({}) not evenly divisible by '
+                         'nwallpnts ({}). Cannot reshape array.'.format(U.size, nwallpnts))
 
     U = U.reshape(nwallpnts, -1)
     wall_distance = wall_distance.reshape(nwallpnts, -1)
 
-    if Uedge is None:
-        Uedge = U[:,-1]
+    Uedge = U[:, -1] if Uedge is None else Uedge
 
     index = np.argmax(U > percent*Uedge[:, None], axis=1)
     W = np.arange(nwallpnts)

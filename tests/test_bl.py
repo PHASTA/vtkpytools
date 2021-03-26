@@ -57,7 +57,7 @@ def test_delta_percent_Uedge(fix_delta):
 
 def test_delta_percent_notSameSize(fix_delta):
     U, wall_dists, nwallpnts, percent = fix_delta
-    with pytest.raises(RuntimeError):
+    with pytest.raises(ValueError):
         # Raise error if U.size is not evenly divisible by nwallpnts
         vpt.delta_percent(U, wall_dists, nwallpnts+7, percent)
 
