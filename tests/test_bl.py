@@ -67,7 +67,7 @@ def test_delta_percent_notSameSize(fix_delta):
 @pytest.mark.parametrize('Uedge', [None, np.ones(2)*0.75])
 def test_delta_velInt_base(fix_delta, displace, momentum, Uedge):
     if Uedge is None:
-        correct = {'delta_displace':0.5, 'delta_momentum':0.09375}
+        correct = {'delta_displace':0.5, 'delta_momentum':3/23}
     else:
         correct = {'delta_displace':1/3, 'delta_momentum':-5/90}
     U, wall_dists, nwallpnts, percent = fix_delta
