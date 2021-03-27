@@ -39,7 +39,7 @@ def sampleAlongVectors(dataBlock, sample_dists, vectors, locations) -> pv.PolyDa
     """
 
     nlocations = locations.shape[0]
-    nprofilesamples = len(sample_dists)
+    nprofilesamples = sample_dists.size
     ntotsamples = nlocations*nprofilesamples
 
     profiles = np.einsum('i,jk->jik', sample_dists, vectors)
