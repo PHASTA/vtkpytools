@@ -33,6 +33,8 @@ setuptools.setup(
     install_requires = [
         'pyvista',
         'numpy',
-        'pytomlpp'
+        'pytomlpp',
+        'scipy',
+        'vtk'
     ]
 )
