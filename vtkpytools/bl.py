@@ -1,12 +1,9 @@
 import numpy as np
 import pyvista as pv
-import warnings
 from .barfiletools import *
 from scipy.integrate import cumtrapz
 from numpy import ndarray
 
-# For debugging only
-import IPython.core.debugger as ipdb
 
 def sampleAlongVectors(dataBlock, sample_dists, vectors, locations) -> pv.PolyData:
     """Sample dataBlock at sample_dists away from locations in vectors direction
@@ -260,6 +257,7 @@ def delta_percent(U, wall_distance, nwallpnts: int, percent: float, Uedge=None) 
 
 def integratedVortBLThickness(vorticity, wall_distance, delta_percent=0.995,
                          delta_displace=False, delta_momentum=False) -> dict:
+    """(DEPRECATED) Computes vorticity-integrated BL thickness for a profile"""
         # Use eqns 3.1-3.4 in Numerical study of turbulent separation bubbles with varying pressure gradient and Reynolds number
     U = -cumtrapz(vorticity, wall_distance, initial=0)
     Ue = U[-1]
