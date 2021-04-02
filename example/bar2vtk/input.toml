@@ -1,0 +1,12 @@
+[arguments]
+asciidata = false
+barfiledir = './data'
+blankvtmfile = './result/exampleMesh.vtm'
+debug = false
+new_file_prefix = ''
+outpath = './result'
+stsbar = []
+timestep = '10000'
+ts0 = -1
+velbar = []
+velonly = false
