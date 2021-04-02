@@ -4,6 +4,7 @@ from .gridtools2d import *
 from .common import (unstructuredToPoly, orderPolyDataLine,
                      vCutter, Profile, globFile,)
 from .numtools import (getGeometricSeries, rotateTensor, makeRotationTensor,
-                       symmetric2FullTensor, full2SymmetricTensor, calcStrainRate)
+                       symmetric2FullTensor, full2SymmetricTensor, calcStrainRate,
+                       pieceLinRoots)
 from .bl import (integratedVortBLThickness, sampleAlongVectors, delta_vortInt, delta_velInt, delta_percent)
 

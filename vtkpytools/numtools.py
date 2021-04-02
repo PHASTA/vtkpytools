@@ -169,3 +169,32 @@ def calcStrainRate(velocity_gradient) -> np.ndarray:
         0.5*(velocity_gradient[:,2] + velocity_gradient[:,6]),
         0.5*(velocity_gradient[:,5] + velocity_gradient[:,7]),
                      ]).T
+
+
+def pieceLinRoots(x, y) -> np.ndarray:
+    """Find roots of piecewise linear function
+
+    Finds the roots of a piecewise-linear function defined by the nodes x and
+    the values at the nodes y.
+
+        f(x[i]) = y[i]    for all i in range(x.size)
+
+    Code taken from: https://stackoverflow.com/a/46911822/7564988
+
+    Parameters
+    ----------
+    x : (N) ndarray
+        1-D array of values corresponding to nodes of the piecewise linear
+    y : (N) ndarray
+        1-D array of values corresponding to function value at the nodes
+
+    Returns
+    -------
+    1-D ndarray of locations where y=0
+    """
+
+        # Get nodes where the function value changes sign
+    s = np.abs(np.diff(np.sign(y))).astype(bool)
+        # Perform linear interpolation between the nodes where function
+            # changes sign
+    return x[:-1][s] + np.diff(x)[s]/(np.abs(y[1:][s]/y[:-1][s])+1)
