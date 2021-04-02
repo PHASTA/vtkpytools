@@ -45,3 +45,13 @@ def test_full2SymmetricTensor(symAndFullTensor):
     sym_test = vpt.full2SymmetricTensor(full)
     assert np.allclose(sym_test, sym)
 
+
+@pytest.mark.parametrize('offset,expected', [(1, [0, 1] ),
+                                             (0, [0.25, 0.75])])
+def test_pieceLinRoots(offset, expected):
+    x = np.array([ 0, 0.5,  1])
+    y = np.array([-1,   1, -1])
+
+    roots = vpt.pieceLinRoots(x, y + offset)
+    assert(np.allclose(roots, expected))
+
