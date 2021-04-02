@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<VTKFile type="vtkMultiBlockDataSet" version="1.0" byte_order="LittleEndian" header_type="UInt32" compressor="vtkZLibDataCompressor">
+  <vtkMultiBlockDataSet>
+    <DataSet index="0" name="grid" file="BL_10000/BL_10000_0.vtu"/>
+    <DataSet index="1" name="wall" file="BL_10000/BL_10000_1.vtp"/>
+  </vtkMultiBlockDataSet>
+</VTKFile>
