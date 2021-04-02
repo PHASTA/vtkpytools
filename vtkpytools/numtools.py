@@ -171,7 +171,7 @@ def calcStrainRate(velocity_gradient) -> np.ndarray:
                      ]).T
 
 
-def pieceLinRoots(x, y) -> np.ndarray:
+def pwlinRoots(x, y) -> np.ndarray:
     """Find roots of piecewise linear function
 
     Finds the roots of a piecewise-linear function defined by the nodes x and

@@ -48,10 +48,10 @@ def test_full2SymmetricTensor(symAndFullTensor):
 
 @pytest.mark.parametrize('offset,expected', [(1, [0, 1] ),
                                              (0, [0.25, 0.75])])
-def test_pieceLinRoots(offset, expected):
+def test_pwlinRoots(offset, expected):
     x = np.array([ 0, 0.5,  1])
     y = np.array([-1,   1, -1])
 
-    roots = vpt.pieceLinRoots(x, y + offset)
+    roots = vpt.pwlinRoots(x, y + offset)
     assert(np.allclose(roots, expected))
 
