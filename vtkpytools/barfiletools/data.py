@@ -1,7 +1,8 @@
 import numpy as np
 import vtk
-from ..common import *
-from scipy.io import FortranFile
+import pyvista as pv
+from ..common import readBinaryArray, Profile
+from ..numtools import makeRotationTensor
 import warnings
 
 def binaryVelbar(velbar_path) -> np.ndarray:
@@ -12,7 +13,6 @@ def binaryVelbar(velbar_path) -> np.ndarray:
 
     Parameters
     ----------
-
     velbar_path : Path
         Path to velbar file.
     """
