@@ -1,7 +1,7 @@
 import numpy as np
 import vtk
 import pyvista as pv
-from ..common import readBinaryArray, Profile
+from ..common import readBinaryArray, Profile, vCutter
 from ..numtools import makeRotationTensor
 import warnings
 
