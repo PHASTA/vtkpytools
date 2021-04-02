@@ -37,12 +37,12 @@ line_walldists = vpt.getGeometricSeries(line_height, line_initpoint, line_growth
 
 ## Extract profiles by pointid, using the closest wall point to a given location
 example_profile = vpt.sampleDataBlockProfile(dataBlock, line_walldists,
-                                         pointid=dataBlock['wall'].find_closest_point([-0.4,0,0]))
+                                         pointid=dataBlock['wall'].find_closest_point([-0.544,0,0]))
 
 ## Extract profiles by specifying an plane intersection using vtkCutter
 plane = vtk.vtkPlane()
 plane.SetNormal((1, 0, 0))
-plane.SetOrigin((-0.4, 0, 0))
+plane.SetOrigin((-0.544, 0, 0))
 example_profile = vpt.sampleDataBlockProfile(dataBlock, line_walldists, cutterobj=plane)
 
 # example_profile is a pv.PolyData object containing the sampled data from the grid

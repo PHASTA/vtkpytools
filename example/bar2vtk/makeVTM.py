@@ -33,7 +33,7 @@ featedges = grid.extract_feature_edges(boundary_edges=True, non_manifold_edges=F
                                        feature_edges=False, manifold_edges=False)
 
     # Second input is point internal to domain, helping ensure that wall normals point inward
-featedges = vpt.computeEdgeNormals(featedges, np.array([-0.42, 0.2, 0]))
+featedges = vpt.computeEdgeNormals(featedges, np.array([-0.544, 0.2, 0]))
 
     # Extract out cells based on their normals, may need adjustment per case
 wall = featedges.extract_cells(np.arange(featedges.n_cells)[featedges['Normals'][:,1] > 0.8])
