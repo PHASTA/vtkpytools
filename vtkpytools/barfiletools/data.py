@@ -121,13 +121,13 @@ def calcCf(wall, Uref, nu, rho, plane_normal='XY') -> np.ndarray:
 
     Parameters
     ----------
-    wall : pv.UnstructuredGrid
+    wall : pv.PolyData
         Wall cells and points
     Uref : float
         Reference velocity
-    nu : float, optional
+    nu : float
         Kinematic viscosity
-    rho : float, optional
+    rho : float
         Density
     plane_normal : {'XY', 'XZ', 'YZ'}, optional
         Plane that the wall lies on. The shear stress vector will be projected
