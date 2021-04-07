@@ -170,6 +170,7 @@ def compute_vorticity(dataset, scalars, vorticity_name='vorticity'):
     alg = vtk.vtkGradientFilter()
 
     alg.SetComputeVorticity(True)
+    alg.SetComputeGradient(False)
     alg.SetVorticityArrayName(vorticity_name)
 
     _, field = dataset.get_array(scalars, preference='point', info=True)
