@@ -232,6 +232,9 @@ def sampleDataBlockProfile(dataBlock, line_walldists, pointid=None,
         sample_line = sample_line.sample(dataBlock['grid'])
         sample_line['WallDistance'] = line_walldists
 
+        sample_line = Profile(sample_line)
+        sample_line.setWallDataFromPointID(wall, pointid)
+
     if cutterobj:
         cutterout = vCutter(wall, cutterobj)
         if cutterout.points.shape[0] != 1:
