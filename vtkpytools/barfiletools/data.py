@@ -218,7 +218,7 @@ def sampleDataBlockProfile(dataBlock, line_walldists, pointid=None,
 
     if 'Normals' not in wall.array_names:
         raise RuntimeError('The wall object must have a "Normals" field present.')
-    if not isinstance(pointid, int) and not cutterobj:
+    if not (isinstance(pointid, int) ^ bool(cutterobj) ): #xnor
         raise RuntimeError('Must provide either pointid or cutterobj.')
 
     if isinstance(pointid, int):
@@ -232,7 +232,7 @@ def sampleDataBlockProfile(dataBlock, line_walldists, pointid=None,
         sample_line = sample_line.sample(dataBlock['grid'])
         sample_line['WallDistance'] = line_walldists
 
-    if cutterobj:
+    else:
         cutterout = vCutter(wall, cutterobj)
         if cutterout.points.shape[0] != 1:
             raise RuntimeError('vCutter resulted in {:d} points instead of 1.'.format(
