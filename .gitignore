@@ -11,3 +11,6 @@ example/bar2vtk/result/*
 
 # testing
 .coverage
+
+# Documentation
+docs/_build/*
