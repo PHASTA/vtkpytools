@@ -166,7 +166,14 @@ def calcCf(wall, Uref, nu, rho, plane_normal='XY') -> np.ndarray:
     return Cf
 
 def compute_vorticity(dataset, scalars, vorticity_name='vorticity'):
-    """Compute Vorticity, only needed till my PR gets merged"""
+    """(DEPRECATED) Compute Vorticity, only needed till my PR gets merged
+
+     .. deprecated::
+         Use the `compute_derivative` method in pyvista's `UnstructuredGrid` class
+     """
+
+    warnings.warn("This function is deprecated. Use the 'compute_derivative'"
+                  " method in pyvista's 'UnstructuredGrid' class" , FutureWarning)
     alg = vtk.vtkGradientFilter()
 
     alg.SetComputeVorticity(True)
