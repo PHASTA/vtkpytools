@@ -60,7 +60,7 @@ def form2DGrid(coords_array, connectivity_array=None) -> pv.UnstructuredGrid:
 
         if cell_type:
             connectivity_array = np.hstack((np.ones((nCells,1), dtype=np.int64)*nPnts, connectivity_array))
-            offsets = np.arange(0, connectivity_array.size+1, nPnts+1, dtype=np.int64)
+            offsets = np.arange(0, connectivity_array.size, nPnts+1, dtype=np.int64)
             cell_types = np.ones(nCells, dtype=np.int64) * cell_type
         else: # quad/tri mesh
             cell_types = repeatedNode*vtk.VTK_TRIANGLE + np.invert(repeatedNode)*vtk.VTK_QUAD

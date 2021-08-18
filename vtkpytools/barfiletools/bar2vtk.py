@@ -217,8 +217,7 @@ def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
     if debug and not velonly:
         grid['stsbar'] = stsbarArray
 
-    grid = grid.compute_gradient(scalars='Velocity')
-    grid = compute_vorticity(grid, scalars='Velocity')
+    grid = grid.compute_derivative(scalars='Velocity', gradient='gradient', vorticity='vorticity')
 
     ## ---- Copy data from grid to wall object
     wall = wall.sample(grid)
