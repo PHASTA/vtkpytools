@@ -59,6 +59,75 @@ def getGeometricSeries(maxval, minval, growthrate, include_zero=True) -> np.ndar
     return geomseries
 
 
+def seriesDiffLimiter(series: np.ndarray, dx=None, magnitude=None) -> np.ndarray:
+    """Take a series and limit the difference between successive elements (DBSE)
+
+    This takes in a 1-D array (whose difference between successive elements (DBSE) is
+    increasing) and creates a new 1-D array that contains the same initial
+    elements, up to a point decided by arguments, and then continues the series
+    with constant DBSE.
+
+    By specifying `dx`, the function will keep the first elements in the array
+    such that the DBSE is less than `dx`. After that, the new points will be
+    filled with intervals of `dx` until they reach the same maximum as the
+    original series.
+
+
+    By specifying `magnitude`, elements in the series that are less than
+    magnitude will be duplicated. Elements greater than `magnitude` will be
+    replaced such that the DBSE is equal to the spacing of the original series
+    at `magnitude`.
+
+    Assumes that the series is increasing and DBSE is increasing. ie. for dxs =
+    np.diff(series), dxs[i] < dxs[i+1] for all i.
+
+    Parameters
+    ----------
+    series : np.ndarray
+        Series of floats representing sample points
+    dx : float
+        The resolution at which to stop growing and maintain resolution.
+    magnitude : float
+        The magnitude of the series at which to maintain the given resolution.
+
+    Returns
+    -------
+    np.ndarray
+
+    Examples
+    -------
+
+    >> input = [0, 1, 2, 4, 8]
+    >> seriesDiffLimiter(input, dx=2.4)
+        [0, 1, 2, 4, 6.4, 8]
+
+    Note that the end point is preserved even though the last DBSE is less than
+    `dx`.
+
+    >> seriesDiffLimiter(input, magnitude=4.0)
+        [0, 1, 2, 4, 6, 8]
+    """
+    if not (bool(dx) ^ bool(magnitude)): #xnor
+        raise RuntimeError('Either dx or magnitude must be set')
+    if dx:
+        dxs = np.diff(series)
+        index = np.ceil( pwlinRoots(np.arange(dxs.size), dxs - dx)[0] ).astype(np.int)
+    else:
+        index = np.ceil( pwlinRoots(np.arange(series.size), series - magnitude)[0] ).astype(np.int)
+        dx = series[index] - series[index-1]
+
+    fill_distance = np.max(series) - series[index]
+    fill_size = np.ceil(fill_distance / dx).astype(np.int)
+    fill_array = np.arange(1, fill_size+1)*dx + series[index]
+
+    new_series = np.zeros(index + fill_size + 1)
+    new_series[:index+1] = series[:index+1]
+    new_series[index+1:] = fill_array
+    new_series[new_series > series[-1]] = series[-1]
+
+    return new_series
+
+
 def symmetric2FullTensor(tensor_array) -> np.ndarray:
     """ Turn (n, 6) shape array of tensor entries into (n, 3, 3)
 
