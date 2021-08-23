@@ -79,20 +79,22 @@ def form2DGrid(coords_array, connectivity_array=None) -> pv.UnstructuredGrid:
     return grid
 
 def computeEdgeNormals(edges, domain_point) -> pv.PolyData:
-    """Compute the normals of the edge assuming coplanar to XY plane
+    r"""Compute the normals of the edge assuming coplanar to XY plane
 
     Loops through every line (or cell) in the edges to calculate it's normal
     vector. Then it will ensure that the vectors face towards the inside of the
     domain using the following:
 
-    1) Create vector from point on line segment to domain_point called "insideVector"
+    #. Create vector from point on line segment to ``domain_point``
+       :math:`\mathbf{a}`
 
-    2) Determine whether the current normal vector points in the direction as
-        the insideVector using a dot product.
+    #. Determine whether the current normal vector points in the direction as
+       the :math:`\mathbf{a}` using a dot product.
 
-    3) Reverse the wall normal vector if it points outside the domain
+    #. Reverse the wall normal vector if it points outside the domain
 
-        n = n * dot(n, insideVector / |insideVector|)
+    .. math::    \mathbf{n} = \mathbf{n} * \frac{\mathbf{n} \cdot
+        \mathbf{a}}{\vert \mathbf{a} \vert}
 
     Parameters
     ----------
@@ -104,7 +106,7 @@ def computeEdgeNormals(edges, domain_point) -> pv.PolyData:
 
     """
     normals = np.zeros((edges.n_cells, 3))
-    i = 0
+
         # Indices of 2 points forming line cell
     indices = edges.lines.reshape((edges.n_cells, 3))[:,1:3]
     pnts1 = edges.points[indices[:,0], :]
@@ -112,7 +114,7 @@ def computeEdgeNormals(edges, domain_point) -> pv.PolyData:
 
     normals[:, 0:2] = np.array([-(pnts1[:,1] - pnts2[:,1]), (pnts1[:,0] - pnts2[:,0])]).T
 
-    inside_vector = domain_point - pnts1
+    inside_vector = domain_point - pnts1 # \mathbf{a} vector
 
         # Dot product of all the normal vectors with the inside-pointing vector
     inOrOut = np.einsum('ij,ij->i',normals,inside_vector)

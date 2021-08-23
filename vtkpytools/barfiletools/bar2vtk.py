@@ -1,3 +1,5 @@
+"""Functions related to the creation of the VTK files from bar* files """
+
 import vtk, os, argparse, datetime, platform, warnings
 import pytomlpp
 import pyvista as pv
@@ -36,6 +38,8 @@ def bar2vtk_main(args=None):
                         val[i] = Path(item)
                 else:
                     bar2vtkargs[key] = Path(val)
+    else:
+        raise RuntimeError
 
     tomlMetadata = bar2vtk_function(**bar2vtkargs, returnTomlMetadata=True)
     tomlReceipt(bar2vtkargs, tomlMetadata)
@@ -135,7 +139,7 @@ def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
     ----------
     blankvtmfile : Path
         Path to blank VTM file. Data is loaded onto this file and then saved to
-        different file. VTM file should contain 'grid' and 'wall' blocks.
+        different file. VTM file should contain ``grid`` and ``wall`` blocks.
     barfiledir : Path
         Directory to where the velbar and stsbar files are located
     timestep : str
@@ -149,20 +153,20 @@ def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
         (Default: -1).
     new_file_prefix : str
         If given, the newly created file will take the form of
-        '{new_file_prefix}_{timestep}.vtm'. If not given, the file prefix will
-        be the same as blankvtmfile. (Default: '').
+        ``{new_file_prefix}_{timestep}.vtm``. If not given, the file prefix will
+        be the same as blankvtmfile. (Default: ``''``).
     outpath : Path
         Path where the new file should be written. If not given, the new file
         will be placed in the current working directory.
     velonly : bool
-        Do not include the stsbar file. (Default: False)
+        Do not include the stsbar file. (Default: ``False``)
     debug : bool
         Adds raw stsbar array as data field. This is purely for debugging
-        purposes. (Default: False)
+        purposes. (Default: ``False``)
     asciidata : bool
-        Whether file paths are in ASCII format. (Default: False)
+        Whether file paths are in ASCII format. (Default: ``False``)
     velbar : List of Path
-        Path(s) to velbar files. If doing time windows, must have two Paths. (Default: [])
+        Path(s) to velbar files. If doing time windows, must have two Paths. (Default: ``[]``)
     stsbar : List of Path
         Path(s) to stsbar files. If doing time windows, must have two Paths. (Default: [])
     returnTomlMetadata : bool
@@ -320,7 +324,7 @@ def tomlReceipt(args: dict, tomlMetadata: dict):
     """
 
     convertArray = [(PurePath, lambda x: x.as_posix()),
-                    (type(None), lambda x: '')
+                    (type(None), lambda _: '')
                     ]
 
     _convertArray2TomlTypes(args, convertArray)

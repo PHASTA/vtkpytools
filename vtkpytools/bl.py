@@ -3,14 +3,15 @@ import pyvista as pv
 from .barfiletools import *
 from scipy.integrate import cumtrapz
 from numpy import ndarray
+import warnings
 
 
 def sampleAlongVectors(dataBlock, sample_dists, vectors, locations) -> pv.PolyData:
-    """Sample dataBlock at sample_dists away from locations in vectors direction
+    """Sample dataBlock at ``sample_dists`` away from ``locations`` in ``vectors`` direction
 
-    Each nth location in 'locations' corresponds with the nth vector in
-    'vectors'. At each location, a sample is take at each sample_dist in
-    'sample_dists' in the direction of the location's corresponding vector.
+    Each nth location in ``locations`` corresponds with the nth vector in
+    ``vectors``. At each location, a sample is take at each sample_dist in
+    ``sample_dists`` in the direction of the location's corresponding vector.
 
     In other words, a "profile" is taken at each location. The vector defines
     the direction the profile is taken (with respect to the location itself)
@@ -19,25 +20,26 @@ def sampleAlongVectors(dataBlock, sample_dists, vectors, locations) -> pv.PolyDa
     Parameters
     ----------
     dataBlock : pyvista.MultiBlock
-        dataBlock from where data will be interpolated. Must contain 'grid' and 'wall' VTK objects.
-    sample_dists : (S) ndarray
-        The distances away from location along the vectors
-    vectors : (L, 3) ndarray
+        dataBlock from where data will be interpolated. Must contain ``grid``
+        and ``wall`` VTK objects.
+    sample_dists : ndarray
+        The distances away from location along the vectors. Shape: (`nsamples`)
+    vectors : ndarray
         Unit vectors that define the direction the samples should be taken away
-        from location.
-    locations : (L, 3) ndarray
-        Coordinates from which samples should start from
+        from location. Shape: (`nlocations`, 3)
+    locations : ndarray
+        Coordinates from which samples should start from. Shape: (`nlocations`, 3)
 
     Returns
     -------
     samples: pv.PolyData
-        Contains L*S data points in S-major order (ie. [:S] contains the all
+        Contains `nlocations`*`nsamples` data points in S-major order (ie. [:S] contains the all
         the samples associated with location[0])
     """
 
     nlocations = locations.shape[0]
-    nprofilesamples = sample_dists.size
-    ntotsamples = nlocations*nprofilesamples
+    samplesperprofile = sample_dists.size
+    ntotsamples = nlocations*samplesperprofile
 
     profiles = np.einsum('i,jk->jik', sample_dists, vectors)
     profiles += locations[:, None, :]
@@ -51,65 +53,67 @@ def sampleAlongVectors(dataBlock, sample_dists, vectors, locations) -> pv.PolyDa
 
 def delta_vortInt(vorticity, wall_distance, nwallpnts: int, displace=False,
                   momentum=False, returnUvort=False, Uedge=None) -> dict:
-    """Calculate vorticity-integrated BL thicknesses (momentum and displacement)
+    r"""Calculate vorticity-integrated BL thicknesses (momentum and displacement)
 
     Based on eqns 3.1-3.4 in "Numerical study of turbulent separation bubbles
     with varying pressure gradient and Reynolds number" Coleman et. al. 2018
 
     First, we define U as the cumulative integral of vorticity from the wall:
 
-        U_i(y) = \int_0^y vorticity_i(j) dj
+    .. math::   U(y) = \int_0^y \omega(n) dn
 
-    where i indexes the wall point and y is distance from the wall. This is
-    Uvort (which is returned by setting 'returnUvort' to True) and can be used
-    to find delta_percent.
+    where :math:`y` is distance from the wall. This is `Uvort` (which is
+    returned by setting ``returnUvort = True``) and can be used to find
+    `delta_percent`:
+
+    .. code-block:: python
 
         result = vpt.delta_vortInt(...., returnUvort=True)
         delta_percent_vorticity = delta_percent(U=result['Uvort'], ....)
 
-    Displacement thickness, d_i, is defined as:
+    Displacement thickness, :math:`\delta^*`, is defined as:
 
-       d_i = -1/Uedge_i \int y * vorticity_i(y) dy
+    .. math::  \delta^* = -1/U_e \int y * \omega(y) dy
 
-    over the full profile height, with i indexing the wall point.
+    over the full profile height for each wall point. :math:`U_e` is the
+    velocity at the edge of the boundary layer (see `Uedge` argument).
 
-    Momentum thickness, m_i, is defined as:
+    Momentum thickness, :math:`\delta_\theta`, is defined as:
 
-       m_i = -2/Uedge_i^2 \int [y * U_i(y) * vorticity_i(y)]dy - d_i
+    .. math::  \delta_\theta = -2/U_e^2 \int [y * U(y) * \omega(y)]dy - \delta^*
 
-    over the full profile height, with i indexing the wall point. Note that U_i
-    is the vorticity-defined velocity defined above.
+    over the full profile height for each wall point.
 
     Parameters
     ----------
-    vorticity : [nwallpnts*nprofilesamples] ndarray
-        Spanwise component of vorticity of the flow.
-    wall_distance : [nwallpnts*nprofilesamples] ndarray
-        Distance to wall for all the sample points
+    vorticity : ndarray
+        Spanwise component of vorticity of the flow. Shape: (`nwallpnts` * `samplesperprofile`)
+    wall_distance : ndarray
+        Distance to wall for all the sample points Shape: (`nwallpnts` * `samplesperprofile`)
     nwallpnts : int
-        Number of wall locations used in the sampling of U. The size of U and
-        wall_distance must be evenly divisible by nwallpnts.
+        Number of wall locations used in the sampling of vorticity. The size of
+        `vorticity` and `wall_distance` must be evenly divisible by `nwallpnts`.
     displace : bool, optional
         Whether to calculate displacement thickness
     momentum : bool, optional
         Whether to calcualte momentum thickness
-    Uedge : [nwallpnts] ndarray, optional
+    Uedge : ndarray, optional
         Sets the values for the edge (vorticity-integrated) velocity used in calculating the boundary
         layer height. If not given, the last sample point for each wall point
-        profile will be used (Default: None).
+        profile will be used. Shape: (`nwallpnts`)
 
     Returns
     -------
     Dictionary with the following items optionally defined:
-
-    delta_displace: ndarray, optional
-        Displacement thickness. Not passed if displace=False
-
-    delta_momentum: ndarray, optional
-        Momentum thickness. Not passed if momentum=False
-
-    Uvort: ndarray, optional
-        Vorticity-integrated velocity. Not passed if returnUvort=False
+    delta_displace : ndarray, optional
+        Displacement thickness. Not passed if ``displace = False``. Shape:
+        (`nwallpnts`)
+    delta_momentum : ndarray, optional
+        Momentum thickness. Not passed if ``momentum = False``. Shape:
+        (`nwallpnts`)
+    Uvort : ndarray, optional
+        Vorticity-integrated velocity. Not passed if ``returnUvort = False``.
+        Shape: (`nwallpnts`)
 
     """
 
@@ -141,48 +145,48 @@ def delta_vortInt(vorticity, wall_distance, nwallpnts: int, displace=False,
 
 def delta_velInt(U, wall_distance, nwallpnts: int,
                  displace: bool = False, momentum: bool = False, Uedge=None) -> dict:
-    """Calculate velocity-integrated BL thicknesses (momentum and displacement)
+    r"""Calculate velocity-integrated BL thicknesses
 
-    Displacement thickness, d_i,  defined as integrating:
+    Displacement thickness, :math:`\delta^*`, defined as integrating:
 
-        (1 - U_i(wall_distance)/Uedge_i)
+    .. math::    \int_0 (1 - U(y)/U_e) dy
 
-    over the full profile height, with i indexing the wall point.
+    over the full profile height for each wall point.
 
-    Momentum thickness, m_i,  defined as integrating:
+    Momentum thickness, :math:`\delta_\theta`,  defined as integrating:
 
-        (1 - U_i(wall_distance)/Uedge_i) * (U_i(wall_distance)/Uedge_i)
+    .. math::    \int_0 (1 - U(y)/U_e) * (U(y)/U_e) dy
 
-    over the full profile height, with i indexing the wall point.
+    over the full profile height for each wall point.
 
     Parameters
     ----------
-    U : [nwallpnts*nprofilesamples] ndarray
+    U : ndarray
         Quantity to base boundary layer height on (generally streamwise
-        velocity)
-    wall_distance : [nwallpnts*nprofilesamples] ndarray
-        Distance to wall for all the sample points
+        velocity). Shape: (`nwallpnts` * `samplesperprofile`)
+    wall_distance : ndarray
+        Distance to wall for all the sample points Shape:
+        (`nwallpnts` * `samplesperprofile`)
     nwallpnts : int
-        Number of wall locations used in the sampling of U. The size of U and
-        wall_distance must be evenly divisible by nwallpnts.
+        Number of wall locations used in the sampling of `U`. The size of
+        `U` and `wall_distance` must be evenly divisible by `nwallpnts`.
     displace : bool, optional
         Whether to calculate displacement thickness
     momentum : bool, optional
-        Whether to calcualte momentum thickness
-    Uedge : [nwallpnts] ndarray, optional
+        Whether to calculate momentum thickness
+    Uedge : ndarray, optional
         Sets the values for the edge velocity used in calculating the boundary
         layer height. If not given, the last sample point for each wall point
-        profile will be used (Default: None).
+        profile will be used. Shape: (`nwallpnts`)
 
     Returns
     -------
     Dictionary with the following items optionally defined:
+    delta_displace : ndarray, optional
+        Displacement thickness. Not passed if ``displace = False``. Shape: (`nwallpnts`)
 
-    delta_displace: ndarray, optional
-        Displacement thickness. Not passed if displace=False
-
-    delta_momentum: ndarray, optional
-        Momentum thickness. Not passed if momentum=False
+    delta_momentum : ndarray, optional
+        Momentum thickness. Not passed if ``momentum = False``. Shape: (`nwallpnts`)
     """
 
     if U.size % nwallpnts != 0:
@@ -208,35 +212,39 @@ def delta_velInt(U, wall_distance, nwallpnts: int,
 
 
 def delta_percent(U, wall_distance, nwallpnts: int, percent: float, Uedge=None) -> ndarray:
-    """Calculate the boundary layer height based on percentage of U
+    r"""Calculate the boundary layer height based on percentage of `U`
 
-    Define the percent boundary layer thickness as h_i such that
+    Define the percent boundary layer thickness as :math:`\delta` such that
 
-        U_i(h_i) = percent*Uedge_i
+    .. math::    U(\delta) = percent*U_e
 
-    for U_i(wall_distance) and i indexing every wall point.
+    for :math:`U(y) \quad \forall y \in` `wall_distance` and :math:`U_e` the
+    edge velocity (see ``Uedge``). Linear interpolation between values of
+    :math:`y \in` `wall_distance` is done to determine :math:`\delta`. This is
+    repeated for each wall point.
 
     Parameters
     ----------
-    U : [nwallpnts*nprofilesamples] ndarray
+    U : ndarray
         Quantity to base boundary layer height on (generally streamwise
-        velocity)
-    wall_distance : [nwallpnts*nprofilesamples] ndarray
-        Distance to wall for all the sample points
+        velocity). Shape: (`nwallpnts`*`samplesperprofile`)
+    wall_distance : ndarray
+        Distance to wall for all the sample points Shape: (`nwallpnts` * `samplesperprofile`)
     nwallpnts : int
-        Number of wall locations used in the sampling of U. The size of U and
-        wall_distance must be evenly divisible by nwallpnts.
+        Number of wall locations used in the sampling of `U`. The size of
+        `U` and `wall_distance` must be evenly divisible by `nwallpnts`.
     percent : float
         The percentage of the "edge" value that defines the boundary layer
         height.
-    Uedge : [nwallpnts] ndarray, optional
+    Uedge : ndarray, optional
         Sets the values for the edge velocity used in calculating the boundary
         layer height. If not given, the last sample point for each wall point
-        profile will be used (Default: None).
+        profile will be used. Shape: (`nwallpnts`)
 
     Returns
     -------
-    delta_percent: [nwallpnts] ndarray
+    delta_percent : ndarray
+        Shape: (`nwallpnts`)
     """
 
     if U.size % nwallpnts != 0:
@@ -257,8 +265,17 @@ def delta_percent(U, wall_distance, nwallpnts: int, percent: float, Uedge=None) 
 
 def integratedVortBLThickness(vorticity, wall_distance, delta_percent=0.995,
                          delta_displace=False, delta_momentum=False) -> dict:
-    """(DEPRECATED) Computes vorticity-integrated BL thickness for a profile"""
-        # Use eqns 3.1-3.4 in Numerical study of turbulent separation bubbles with varying pressure gradient and Reynolds number
+    """(DEPRECATED) Computes vorticity-integrated BL thickness for a profile
+
+    .. deprecated::
+        Use `delta_vortInt` with `sampleAlongVectors` instead. Only kept to not
+        break previous scripts.
+    """
+
+    warnings.warn("This function is deprecated. Use 'delta_vortInt' with "
+                  "'sampleAlongVectors' instead", FutureWarning)
+        # Use eqns 3.1-3.4 in Numerical study of turbulent separation bubbles
+        # with varying pressure gradient and Reynolds number
     U = -cumtrapz(vorticity, wall_distance, initial=0)
     Ue = U[-1]
 

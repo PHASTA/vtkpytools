@@ -4,6 +4,8 @@ import numpy as np
 from scipy.io import FortranFile
 from pathlib import Path
 import re
+from typing import Union, Optional
+from os import PathLike
 
 def unstructuredToPoly(unstructured_grid):
     """Convert vtk.UnstructruedGrid to vtk.PolyData"""
@@ -19,7 +21,7 @@ def orderPolyDataLine(polydata):
     strip.Update()
     return pv.wrap(strip.GetOutput())
 
-def vCutter(input_data, cut_function):
+def vCutter(input_data: pv.PolyData, cut_function):
     """Returns the intersection of input_data and cut_function
 
     Wrapper around vtkCutter filter. Output contains interpolated data from
@@ -48,13 +50,24 @@ class Profile(pv.PolyData):
     Use case is for storage of wall local data (boundary layer metrics, Cf
     etc.) with profiles that correspond to that wall local data.
 
+    Attributes
+    ----------
+    walldata : dict
+        Dictionary of data from the wall corresponding to the profile location.
+        Generated using `setWallDataFromPolyDataPoint`
     """
     walldata = {}
 
-    def setWallDataFromPolyDataPoint(self, PolyPoint):
+    def setWallDataFromPolyDataPoint(self, PolyPoint: pv.PolyData):
         """Set walldata attribute from PolyData Point
 
         Primary use case is the using the output of vtkpytools.vCutter()
+
+        Parameters
+        ----------
+        PolyPoint : pv.PolyPoint
+            PolyData object containing one point. The point arrays attached to
+            the points are converted to a `dict` and set to `walldata`.
         """
         if PolyPoint.n_points != 1:
             raise RuntimeError('Profile should only have 1 wallpoint, {:d} given'.format(
@@ -62,12 +75,11 @@ class Profile(pv.PolyData):
         self.walldata = dict(PolyPoint.point_arrays)
         self.walldata['Point'] = PolyPoint.points
 
-def readBinaryArray(path, ncols) -> np.ndarray:
+def readBinaryArray(path: Union[str, PathLike], ncols: int) -> np.ndarray:
     """Get array from Fortran binary file.
 
     Parameters
     ----------
-
     path : Path
         Path to Fortran binary array.
     ncols : uint
@@ -80,7 +92,7 @@ def readBinaryArray(path, ncols) -> np.ndarray:
 
     return array
 
-def globFile(globstring, path: Path, regex=False) -> Path:
+def globFile(globstring, path: Path, regex=False) -> Optional[Path]:
     """ Glob for one file in directory, then return.
 
     If it finds more than one file matching the globstring, it will error out.

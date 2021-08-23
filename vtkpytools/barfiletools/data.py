@@ -4,11 +4,14 @@ import pyvista as pv
 from ..common import readBinaryArray, Profile, vCutter
 from ..numtools import makeRotationTensor
 import warnings
+from os import PathLike
+from typing import Union, Optional
+from typing_extensions import Literal
 
-def binaryVelbar(velbar_path) -> np.ndarray:
+def binaryVelbar(velbar_path: Union[str, PathLike]) -> np.ndarray:
     """Get velbar array from binary file.
 
-    Wrapping around vpt.readBinaryArray. Assumes that the number of columns in
+    Wrapping around `vpt.readBinaryArray`. Assumes that the number of columns in
     the array is 5.
 
     Parameters
@@ -18,21 +21,30 @@ def binaryVelbar(velbar_path) -> np.ndarray:
     """
     return readBinaryArray(velbar_path, 5)
 
-def binaryStsbar(stsbar_path) -> np.ndarray:
+def binaryStsbar(stsbar_path: Union[str, PathLike]) -> np.ndarray:
     """Get stsbar array from binary file.
 
-    Wrapping around vpt.readBinaryArray. Assumes that the number of columns in
+    Wrapping around `vpt.readBinaryArray`. Assumes that the number of columns in
     the array is 6.
 
     Parameters
     ----------
-    stsbar_path : Path
+    stsbar_path : PathLike
         Path to stsbar file.
     """
     return readBinaryArray(stsbar_path, 6)
 
-def calcReynoldsStresses(stsbar_array, velbar_array, conservative_stresses=False) -> np.ndarray:
-    """Calculate Reynolds Stresses from velbar and stsbar data.
+def calcReynoldsStresses(stsbar_array: np.ndarray, velbar_array: np.ndarray,
+                         conservative_stresses: bool=False) -> np.ndarray:
+    r"""Calculate Reynolds Stresses from velbar and stsbar data.
+
+    Calculates via:
+
+    .. math:: \langle u_i' u_j' \rangle = \langle u_i u_j \rangle - \langle u_i
+        \rangle \langle u_j \rangle
+
+    where :math:`u_i` are the instantaneous velocity components and
+    :math:`u_i'` is the fluctuating velocity component.
 
     Parameters
     ----------
@@ -41,8 +53,8 @@ def calcReynoldsStresses(stsbar_array, velbar_array, conservative_stresses=False
     velbar_array : ndarray
         Array of velbar values
     conservative_stresses : bool
-        Whether the stsbar file used the
-        'Conservative Stresses' option (default:False)
+        Whether the stsbar file used the 'Conservative Stresses' option
+        (Default: ``False``)
 
     Returns
     -------
@@ -69,7 +81,7 @@ def calcReynoldsStresses(stsbar_array, velbar_array, conservative_stresses=False
 
     return ReyStrTensor
 
-def calcWallShearGradient(wall) -> np.ndarray:
+def calcWallShearGradient(wall: pv.DataSet) -> np.ndarray:
     """Calcuate the shear gradient at the wall
 
     Wall shear gradient is defined as the gradient of the velocity tangent to
@@ -77,11 +89,11 @@ def calcWallShearGradient(wall) -> np.ndarray:
     multiply by mu.
 
     If the wall normal unit vector is taken to be n and the
-    gradient of velocity is e_ij, then the wall shear gradient is:
+    gradient of velocity is :math:`e_{ij}`, then the wall shear gradient is:
 
-        (delta_ik - n_k n_i) n_j e_kj
+    .. math:: (\delta_{ik} - n_k n_i) n_j e_{kj}
 
-    where n_j e_kj is the "traction" vector at the wall. See post at
+    where :math:`n_j e_{kj}` is the "traction" vector at the wall. See post at
     https://www.jameswright.xyz/post/wall_shear_gradient_from_velocity_gradient/
     for derivation of method.
 
@@ -109,17 +121,18 @@ def calcWallShearGradient(wall) -> np.ndarray:
 
     return wall_shear_gradient
 
-def calcCf(wall, Uref, nu, rho, plane_normal='XY') -> np.ndarray:
-    """Calcuate the Coefficient of Friction of the wall
+def calcCf(wall: pv.DataSet, Uref: float, nu: float, rho: float,
+           plane_normal: Literal['XY', 'XZ', 'YZ'] ='XY') -> np.ndarray:
+    r"""Calcuate the Coefficient of Friction of the wall
 
     Uses vpt.calcWallShearGradient to get du/dn, then uses input values to
-    calculate Cf using:
+    calculate :math:`C_f` using:
 
-        C_f = T_w / (0.5 * rho * Uref^2)
+    .. math:: C_f = \frac{\tau_w}{0.5 * \rho * U_\mathrm{ref}^2}
 
     Parameters
     ----------
-    wall : pv.PolyData
+    wall : pv.DataSet
         Wall cells and points
     Uref : float
         Reference velocity
@@ -129,7 +142,7 @@ def calcCf(wall, Uref, nu, rho, plane_normal='XY') -> np.ndarray:
         Density
     plane_normal : {'XY', 'XZ', 'YZ'}, optional
         Plane that the wall lies on. The shear stress vector will be projected
-        onto it. (default: 'XY')
+        onto it. (default: ``'XY'``)
 
     Returns
     -------
@@ -154,6 +167,9 @@ def calcCf(wall, Uref, nu, rho, plane_normal='XY') -> np.ndarray:
         streamwise_vectors = np.array([wall['Normals'][:,2],
                                        np.zeros_like(-wall['Normals'][:,0]),
                                        -wall['Normals'][:,0]]).T
+    else:
+        raise RuntimeError("'plane_normal' must be either 'xy', 'xz', or 'yz'. "
+                           f"Instead, given {plane_normal}")
 
         # Project tangential gradient vector onto the chosen plane using n x (T_w x n)
     Tw = mu * np.cross(plane_normal[None,:],
@@ -184,33 +200,34 @@ def compute_vorticity(dataset, scalars, vorticity_name='vorticity'):
     alg.Update()
     return pv.filters._get_output(alg)
 
-def sampleDataBlockProfile(dataBlock, line_walldists, pointid=None,
-                           cutterobj=None, normal=None) -> Profile:
+def sampleDataBlockProfile(dataBlock: pv.MultiBlock, line_walldists: np.ndarray,
+                           pointid: Optional[int] = None,
+                           cutterobj: Optional[vtk.vtkPlane] = None,
+                           normal: Optional[np.ndarray]=None) -> Profile:
     """Sample data block over a wall-normal profile
 
-    Given a dataBlock containing a 'grid' and 'wall' block, this will return a
-    PolyData object that samples 'grid' at the wall distances specified in
-    line_walldists. This assumes that the 'wall' block has a field named
-    'Normals' containing the wall-normal vectors.
+    Given a dataBlock containing a ``grid`` and ``wall`` block, this will
+    return a PolyData object that samples ``grid`` at the wall distances
+    specified in line_walldists. This assumes that the ``wall`` block has a
+    field named ``Normals`` containing the wall-normal vectors.
 
     The location of the profile is defined by either the index of a point in
-    the 'wall' block or by specifying a vtk implicit function (such as
-    vtk.vtkPlane) that intersects the 'wall' object. The latter uses the
-    vtk.vtkCutter filter to determine the intersection.
+    the ``wall`` block or by specifying a vtk implicit function (such as
+    :class:`vtk.vtkPlane`) that intersects the ``wall`` object. The latter uses
+    the :class:`vtk.vtkCutter` filter to determine the intersection.
 
     Parameters
     ----------
     dataBlock : pv.MultiBlock
-        MultiBlock containing the 'grid' and 'wall' objects
+        MultiBlock containing the ``grid`` and ``wall`` objects
     line_walldists : numpy.ndarray
         The locations normal to the wall that should be sampled and returned.
         Locations are expected to be in order.
     pointid : int, optional
-        Index of the point in 'wall' where the profile should be taken.
-        (default: None)
+        Index of the point in ``wall`` where the profile should be taken.
     cutterobj : vtk.vtkPlane, optional
         VTK object that defines the profile location via intersection with the
-        'wall'
+        ``wall``
     normal : numpy.ndarray, optional
         If given, use this vector as the wall normal.
 
@@ -223,8 +240,6 @@ def sampleDataBlockProfile(dataBlock, line_walldists, pointid=None,
 
     if 'Normals' not in wall.array_names:
         raise RuntimeError('The wall object must have a "Normals" field present.')
-    if not (isinstance(pointid, int) ^ bool(cutterobj) ): #xnor
-        raise RuntimeError('Must provide either pointid or cutterobj.')
 
     if isinstance(pointid, int):
         wallnormal = wall['Normals'][pointid,:] if normal is None else normal
@@ -236,8 +251,9 @@ def sampleDataBlockProfile(dataBlock, line_walldists, pointid=None,
         sample_line = pv.lines_from_points(sample_points)
         sample_line = sample_line.sample(dataBlock['grid'])
         sample_line['WallDistance'] = line_walldists
+        sample_line = Profile(sample_line)
 
-    else:
+    elif cutterobj:
         cutterout = vCutter(wall, cutterobj)
         if cutterout.points.shape[0] != 1:
             raise RuntimeError('vCutter resulted in {:d} points instead of 1.'.format(
@@ -255,9 +271,13 @@ def sampleDataBlockProfile(dataBlock, line_walldists, pointid=None,
         sample_line = Profile(sample_line)
         sample_line.setWallDataFromPolyDataPoint(cutterout)
 
+    else:
+        raise RuntimeError('Must provide either pointid or cutterobj.')
+
     return sample_line
 
-def wallAlignRotationTensor(wallnormal, cart_normal, plane='xy') -> np.ndarray:
+def wallAlignRotationTensor(wallnormal: np.ndarray, cart_normal: Union[list, np.ndarray],
+                            plane: Literal['xy', 'xz', 'yz'] = 'xy') -> np.ndarray:
     """Create rotation tensor for wall alligning quantities
 
     For 2D xy plane and streamwise x, cart_normal should be the y unit vector.
@@ -269,13 +289,16 @@ def wallAlignRotationTensor(wallnormal, cart_normal, plane='xy') -> np.ndarray:
     cart_normal : numpy.ndarray
         The Cartesian equivalent to the wall normal. If the wall were "flat",
         this would be the wall normal vector.
-    plane : str
-        2D plane to rotate on, from 'xy', 'xz', 'yz'. (Default is 'xy')
+    plane : str, default: 'xy'
+        2D plane to rotate on, from 'xy', 'xz', 'yz'.
     """
 
     if plane.lower() == 'xy':   rotation_axis = np.array([0, 0, 1])
     elif plane.lower() == 'xz': rotation_axis = np.array([0, 1, 0])
     elif plane.lower() == 'yz': rotation_axis = np.array([1, 0, 0])
+    else:
+        raise RuntimeError("'plane' must be either 'xy', 'xz', or 'yz'. "
+                           f"Instead, given {plane}")
 
     theta = np.arccos(np.dot(wallnormal, cart_normal))
     # Determine whether clockwise or counter-clockwise rotation
