@@ -1,6 +1,5 @@
 import numpy as np
 import vtk
-from pathlib import Path
 import pyvista as pv
 
 
@@ -13,12 +12,12 @@ def form3DGrid(coords_array, connectivity_array) -> pv.UnstructuredGrid:
     Parameters
     ----------
     coords_array : numpy.ndarray
-        Coordinates of the points. Shape in (nPoints,2).
+        Coordinates of the points. Shape: (nPoints, 2)
     connectivity_array : numpy.ndarray
-        Connectivity array of the cells. Shape is (nCells,PointsPerCell). The
-        index of points should start from 0. The type of cell will be inferred
-        based on the number of points per cell. Mixed meshes inferred by
-        repeated node IDs in a single element.
+        Connectivity array of the cells. The index of points should start from
+        0. The type of cell will be inferred based on the number of points per
+        cell. Mixed meshes inferred by repeated node IDs in a single element.
+        Shape: (nCells, PointsPerCell)
 
     Returns
     -------
