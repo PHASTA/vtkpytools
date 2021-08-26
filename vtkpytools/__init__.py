@@ -9,3 +9,4 @@ from .numtools import (getGeometricSeries, rotateTensor, makeRotationTensor,
                        pwlinRoots, seriesDiffLimiter)
 from .bl import (integratedVortBLThickness, sampleAlongVectors, delta_vortInt, delta_velInt, delta_percent)
 
+from .misc import *
