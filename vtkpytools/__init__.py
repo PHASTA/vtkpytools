@@ -1,3 +1,4 @@
+from ._version import __version__
 from .barfiletools import *
 from .gridtools3d import *
 from .gridtools2d import *
