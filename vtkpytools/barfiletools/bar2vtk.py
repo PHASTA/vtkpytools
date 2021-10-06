@@ -4,8 +4,8 @@ import pyvista as pv
 import numpy as np
 from pathlib import Path, PurePath
 
-from .data import binaryVelbar, binaryStsbar, calcReynoldsStresses, compute_vorticity
-from ..common import globFile
+from .data import binaryVelbar, binaryStsbar, calcReynoldsStresses
+from ..common import globFile, readBinaryArray
 from .._version import __version__
 
 
@@ -107,6 +107,9 @@ def bar2vtk_parse(args=None):
     cliparser.add_argument('-a', '--ascii', help='Read *bar files as ASCII', action='store_true')
     cliparser.add_argument('--velbar', help='Path to velbar file(s)', type=Path, nargs='+', default=[])
     cliparser.add_argument('--stsbar', help='Path to stsbar file(s)', type=Path, nargs='+', default=[])
+    cliparser.add_argument('--consrvstress',
+                           help='Calculate Reynolds stress assuming conservative stsbar data',
+                           type=bool, nargs=1, default=False)
 
     # Toml Parser Setup
     tomlparser = subparser.add_parser('toml', description=TomlDescription, formatter_class=CustomFormatter,
@@ -123,7 +126,7 @@ def bar2vtk_parse(args=None):
 def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
                      ts0: int=-1,  new_file_prefix: str='', outpath: Path=None, \
                      velonly=False, debug=False, asciidata=False, \
-                     velbar=[],     stsbar=[], returnTomlMetadata=False):
+                     velbar=[],     stsbar=[], returnTomlMetadata=False, consrvstress=False):
     """Convert velbar and stsbar files into 2D vtk files
 
     See bar2vtk_commandline help documentation for more information.
@@ -162,6 +165,13 @@ def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
         Path(s) to velbar files. If doing time windows, must have two Paths. (Default: [])
     stsbar : List of Path
         Path(s) to stsbar files. If doing time windows, must have two Paths. (Default: [])
+    returnTomlMetadata : bool
+        Whether to return the metadata required for writing a toml reciept file. (Default: False)
+    consrvstress : bool
+        Whether the data in the stsbar file is conservative or not. This
+        affects both how the stsbar file is read and how the Reynolds stresses
+        are calculated from them. See calcReynoldsStresses() for more
+        information. (Default: False)
     """
 
     ## ---- Process/check script arguments
@@ -192,7 +202,12 @@ def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
     vtmPath = (outpath if outpath else os.getcwd()) / vtmName
 
     velbarReader = np.loadtxt if asciidata else binaryVelbar
-    stsbarReader = np.loadtxt if asciidata else binaryStsbar
+    if asciidata:
+        stsbarReader = np.loadtxt
+    elif consrvstress:
+        stsbarReader = lambda path: readBinaryArray(path, ncols=9)
+    else:
+        stsbarReader = binaryStsbar
 
     ## ---- Loading data arrays
     if '-' in timestep and ts0 == -1:
@@ -214,7 +229,7 @@ def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
     grid['Velocity'] = velbarArray[:,1:4]
 
     if not velonly:
-        ReyStrTensor = calcReynoldsStresses(stsbarArray, velbarArray)
+        ReyStrTensor = calcReynoldsStresses(stsbarArray, velbarArray, consrvstress)
         grid['ReynoldsStress'] = ReyStrTensor
 
     if debug and not velonly:
@@ -285,6 +300,7 @@ def blankToml(tomlfilepath: Path, returndict=False):
         'asciidata': False,
         'velbar': [],
         'stsbar': [],
+        'consrvstress': False,
     }}
 
     with tomlfilepath.open('w') as file:
