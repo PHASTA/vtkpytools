@@ -8,6 +8,7 @@ from .data import binaryVelbar, binaryStsbar, calcReynoldsStresses, compute_vort
 from ..common import globFile
 from .._version import __version__
 
+
 def bar2vtk_main(args=None):
     """Function that runs the "binary" bar2vtk"""
 
@@ -38,6 +39,7 @@ def bar2vtk_main(args=None):
 
     tomlMetadata = bar2vtk_function(**bar2vtkargs, returnTomlMetadata=True)
     tomlReceipt(bar2vtkargs, tomlMetadata)
+
 
 def bar2vtk_parse(args=None):
     GeneralDescription="""Tool for putting velbar and stsbar data onto a vtm grid."""
@@ -116,6 +118,7 @@ def bar2vtk_parse(args=None):
     args = vars(parser.parse_args(args))
 
     return args
+
 
 def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
                      ts0: int=-1,  new_file_prefix: str='', outpath: Path=None, \
@@ -236,6 +239,7 @@ def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
 
         return tomlMetadata
 
+
 def getBarData(_bar: list, timestep_str: str, barfiledir: Path, _barReader,
                    ts0: int, globname: str):
     """Get array of data from bar2vtk arguments"""
@@ -266,6 +270,7 @@ def getBarData(_bar: list, timestep_str: str, barfiledir: Path, _barReader,
 
     return _barArray, _barPaths
 
+
 def blankToml(tomlfilepath: Path, returndict=False):
     """Write blank toml file to tomlfilepath"""
     tomldict = { 'arguments': {
@@ -285,6 +290,7 @@ def blankToml(tomlfilepath: Path, returndict=False):
     with tomlfilepath.open('w') as file:
         pytomlpp.dump(tomldict, file)
     if returndict: return tomldict
+
 
 def tomlReceipt(args: dict, tomlMetadata: dict):
     """Creates a receipt of the created file
@@ -330,6 +336,7 @@ def tomlReceipt(args: dict, tomlMetadata: dict):
         tomlPath = vtmDir / Path('receipt.toml')
         with tomlPath.open(mode='w') as file:
             pytomlpp.dump(tomldict, file)
+
 
 def _convertArray2TomlTypes(array, convertArray: list):
     """Recursively convert objects in array to toml compatible objects based on convertArray
