@@ -105,7 +105,7 @@ def test_pwlinRoots(offset, expected):
     y = np.array([-1,   1, -1])
 
     roots = vpt.pwlinRoots(x, y + offset)
-    assert(np.allclose(roots, expected))
+    assert np.allclose(roots, expected)
 
 
 @pytest.mark.parametrize('kwargs,expected', [({'dx': 2.4}, [0, 1, 2, 4, 6.4, 8]),
@@ -115,8 +115,8 @@ def test_seriesDiffLimiter(kwargs, expected):
     series = np.array([0, 1, 2, 4, 8])
 
     result = vpt.seriesDiffLimiter(series, **kwargs)
-    assert(result.size == len(expected))
-    assert(np.allclose(result, expected))
+    assert result.size == len(expected)
+    assert np.allclose(result, expected)
 
 @pytest.mark.parametrize('kwargs', [{},
                                     {'dx': 2.0, 'magnitude': 4.0}])
