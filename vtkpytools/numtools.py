@@ -129,26 +129,36 @@ def seriesDiffLimiter(series: np.ndarray, dx=None, magnitude=None) -> np.ndarray
 
 
 def symmetric2FullTensor(tensor_array) -> np.ndarray:
-    """ Turn (n, 6) shape array of tensor entries into (n, 3, 3)
+    """Turn (..., 6) shape array of tensor entries into (..., 3, 3)
 
     Assumed that symmtetric entires are in XX YY ZZ XY XZ YZ order."""
+    if tensor_array.shape[-1] != 6:
+        raise ValueError('The array is not in symmetric form! '
+                         f'The last axis must be size 6, not {tensor_array.shape[-1]}.')
+
 
     shaped_tensors = np.array([
-                     tensor_array[:,0], tensor_array[:,3], tensor_array[:,4],
-                     tensor_array[:,3], tensor_array[:,1], tensor_array[:,5],
-                     tensor_array[:,4], tensor_array[:,5], tensor_array[:,2]
+                     tensor_array[...,0], tensor_array[...,3], tensor_array[...,4],
+                     tensor_array[...,3], tensor_array[...,1], tensor_array[...,5],
+                     tensor_array[...,4], tensor_array[...,5], tensor_array[...,2]
                     ]).T
-    return shaped_tensors.reshape(shaped_tensors.shape[0], 3, 3)
+    return shaped_tensors.reshape(*tensor_array.shape[:-1], 3, 3)
 
 
 def full2SymmetricTensor(tensor_array) -> np.ndarray:
-    """ Turn (n, 3, 3) shape array of tensor entries into (n, 6)
+    """Turn (..., 3, 3) shape array of tensor entries into (..., 6)
 
-    Symmetric entires are in XX YY ZZ XY XZ YZ order."""
-    return np.array([
-        tensor_array[:,0,0], tensor_array[:,1,1], tensor_array[:,2,2],
-        tensor_array[:,0,1], tensor_array[:,0,2], tensor_array[:,1,2]
-                    ]).T
+    Symmetric entires are in XX YY ZZ XY XZ YZ order.
+    """
+    if tensor_array.shape[-2:] != (3,3):
+        raise ValueError('The array is not in full form! '
+                         f'The last two axis must be shape (3,3), not {tensor_array.shape[-2:]}.')
+
+    shaped_tensors = np.empty((*tensor_array.shape[:-2], 6))
+    indices = [(0,0), (1,1), (2,2), (0,1), (0,2), (1,2)]
+    for i, ind in enumerate(indices):
+        shaped_tensors[...,i] = tensor_array[...,ind[0], ind[1]]
+    return shaped_tensors
 
 
 def makeRotationTensor(rotation_axis, theta) -> np.ndarray:
