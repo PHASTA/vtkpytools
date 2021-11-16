@@ -31,19 +31,71 @@ def test_calcStrainRate(twoFullTensors):
     assert np.allclose(strainrate, solution)
     assert strainrate.shape[0] == twoFullTensors.shape[0]
 
+class Test_symmetric2FullTensor():
 
-def test_symmetric2FullTensor(symAndFullTensor):
-    (full, sym) = symAndFullTensor
+    @staticmethod
+    def test_func2d(symAndFullTensor):
+        full, sym = symAndFullTensor
 
-    full_test = vpt.symmetric2FullTensor(sym)
-    assert np.allclose(full_test, full)
+        full_test = vpt.symmetric2FullTensor(sym)
+        assert np.allclose(full_test, full)
+
+    @staticmethod
+    def test_func_Nd(symAndFullTensor):
+        """Test (n,m,6) -> (n,m,3,3)"""
+        full, sym = symAndFullTensor
+
+        sym = sym.reshape((1,-1,6))
+        full = full.reshape((1,-1,3,3))
+        full_test = vpt.symmetric2FullTensor(sym)
+        assert full_test.shape == full.shape
+        assert np.allclose(full_test, full)
+
+        sym = sym.reshape((-1,1,6))
+        full = full.reshape((-1,1,3,3))
+        full_test = vpt.symmetric2FullTensor(sym)
+        assert full_test.shape == full.shape
+        assert np.allclose(full_test, full)
+
+    @staticmethod
+    def test_inputCheck():
+        array = np.empty((6,4))
+        with pytest.raises(Exception):
+            vpt.symmetric2FullTensor(array)
 
 
-def test_full2SymmetricTensor(symAndFullTensor):
-    (full, sym) = symAndFullTensor
+class Test_full2SymmetricTensor():
 
-    sym_test = vpt.full2SymmetricTensor(full)
-    assert np.allclose(sym_test, sym)
+    @staticmethod
+    def test_func3d(symAndFullTensor):
+        full, sym = symAndFullTensor
+
+        sym_test = vpt.full2SymmetricTensor(full)
+        assert sym_test.shape == sym.shape
+        assert np.allclose(sym_test, sym)
+
+    @staticmethod
+    def test_func_Nd(symAndFullTensor):
+        """Test (n,m,3,3) -> (n,m,6)"""
+        full, sym = symAndFullTensor
+
+        sym = sym.reshape((1,-1,6))
+        full = full.reshape((1,-1,3,3))
+        sym_test = vpt.full2SymmetricTensor(full)
+        assert sym_test.shape == sym.shape
+        assert np.allclose(sym_test, sym)
+
+        sym = sym.reshape((-1,1,6))
+        full = full.reshape((-1,1,3,3))
+        sym_test = vpt.full2SymmetricTensor(full)
+        assert sym_test.shape == sym.shape
+        assert np.allclose(sym_test, sym)
+
+    @staticmethod
+    def test_inputCheck():
+        array = np.empty((3,3,4))
+        with pytest.raises(Exception):
+            vpt.full2SymmetricTensor(array)
 
 
 @pytest.mark.parametrize('offset,expected', [(1, [0, 1] ),
