@@ -254,6 +254,41 @@ def delta_percent(U, wall_distance, nwallpnts: int, percent: float, Uedge=None) 
 
     return wall_distance[W, index-1] + (percent*Uedge - U[W, index-1])*slopes
 
+def compute_Ue(U, wall_distance, deltaBL, nwallpnts: int) -> ndarray:
+    """Calculate the velocity at the edge of BL based on computed BL height
+
+    Parameters
+    ----------
+    U : [nwallpnts*nprofilesamples] ndarray
+        Quantity to base boundary layer height on (generally streamwise
+        velocity)
+    wall_distance : [nwallpnts*nprofilesamples] ndarray
+        Distance to wall for all the sample points
+    deltaBL : [nprofilesamples] ndarray
+        BL thickness         
+    nwallpnts : int
+        Number of wall locations used in the sampling of U. The size of U and
+        wall_distance must be evenly divisible by nwallpnts.
+
+    Returns
+    -------
+    delta_percent: [nwallpnts] ndarray
+    """
+    if U.size % nwallpnts != 0:
+        raise ValueError('Number of data points ({}) not evenly divisible by '
+                         'nwallpnts ({}). Cannot reshape array.'.format(U.size, nwallpnts))
+
+    U = U.reshape(nwallpnts, -1)
+    wall_distance = wall_distance.reshape(nwallpnts, -1)
+
+    [nstream,tmp] = U.shape
+    
+    U_e = np.zeros(deltaBL.size)
+    for i in range(nstream):
+        ind = np.argmin(np.abs(wall_distance[i,:] - deltaBL[i]*np.ones([nwallpnts,1])))
+        U_e[i] = U[i,ind]
+
+    return U_e
 
 def integratedVortBLThickness(vorticity, wall_distance, delta_percent=0.995,
                          delta_displace=False, delta_momentum=False) -> dict:

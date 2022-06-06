@@ -140,6 +140,24 @@ def symmetric2FullTensor(tensor_array) -> np.ndarray:
                     ]).T
     return shaped_tensors.reshape(shaped_tensors.shape[0], 3, 3)
 
+def ReyStressTo3rdOrderTensor(tensor_array) -> np.ndarray:
+    """ Turn (n, 18) shape array of tensor entries into (n, 3, 3, 3)
+
+    Assumed that symmtetric entires are in XX YY ZZ XY XZ YZ order."""
+
+    shaped_tensors = np.array([
+                     tensor_array[:,0], tensor_array[:,9],tensor_array[:,12],
+                     tensor_array[:,9], tensor_array[:,3],tensor_array[:,15],
+                     tensor_array[:,12],tensor_array[:,15],tensor_array[:,6],
+                     tensor_array[:,1], tensor_array[:,10],tensor_array[:,13],
+                     tensor_array[:,10], tensor_array[:,4],tensor_array[:,16],
+                     tensor_array[:,13],tensor_array[:,16],tensor_array[:,7],
+                     tensor_array[:,2], tensor_array[:,11],tensor_array[:,14],
+                     tensor_array[:,11], tensor_array[:,5],tensor_array[:,17],
+                     tensor_array[:,14],tensor_array[:,17],tensor_array[:,8]
+                    ]).T
+    return shaped_tensors.reshape(shaped_tensors.shape[0], 3, 3, 3)
+
 
 def full2SymmetricTensor(tensor_array) -> np.ndarray:
     """ Turn (n, 3, 3) shape array of tensor entries into (n, 6)
@@ -195,6 +213,9 @@ def rotateTensor(tensor_array, rotation_tensor) -> np.ndarray:
     def rank2Rotation(rot_tensor, shaped_tensors):
         return np.einsum('ik,ekl,jl->eij', rot_tensor, shaped_tensors, rot_tensor)
 
+    def rank3Rotation(rot_tensor, shaped_tensors):
+        return np.einsum('li,mj,nk,eijk->elmn', rot_tensor, rot_tensor, rot_tensor, shaped_tensors)
+
     if tensor_array.shape[1] == 3 and tensor_array.ndim == 2:
         return np.einsum('ij,ej->ei', rotation_tensor, tensor_array)
 
@@ -211,6 +232,16 @@ def rotateTensor(tensor_array, rotation_tensor) -> np.ndarray:
     elif tensor_array.shape[1] == 9:
         shaped_tensors = tensor_array.reshape(tensor_array.shape[0], 3, 3)
         return rank2Rotation(rotation_tensor, shaped_tensors).reshape(tensor_array.shape[0], 9)
+
+    elif tensor_array.shape[1] == 18:
+        shaped_tensors = ReyStressTo3rdOrderTensor(tensor_array)
+        return rank3Rotation(rotation_tensor, shaped_tensors).reshape(tensor_array.shape[0], 27)
+
+    elif tensor_array.shape[1] == 27:
+        shaped_tensors = tensor_array.reshape(tensor_array.shape[0], 3, 3, 3)
+        return rank3Rotation(rotation_tensor, shaped_tensors).reshape(tensor_array.shape[0], 27)
+
+
     else:
         raise ValueError('Did not find appropriate method'
                            ' for array of shape{}'.format(tensor_array.shape))
@@ -239,6 +270,81 @@ def calcStrainRate(velocity_gradient) -> np.ndarray:
         0.5*(velocity_gradient[:,5] + velocity_gradient[:,7]),
                      ]).T
 
+def calcRotationRate(velocity_gradient) -> np.ndarray:
+    """Calculate rotation rate from n velocity gradient tensors
+
+    Interpreted as the symmetric tensor of the velocity gradient:
+    1/2 (u_{i,j} + u_{j,i})
+
+    Parameters
+    ----------
+    velocity_gradient : np.ndarray
+        Assumed to be of shape (n,9) in the order XX XY XZ YX YY YZ ZX ZY ZZ
+
+    Returns
+    -------
+    np.ndarray of shape (n,9) in the order XX XY XZ YX YY YZ ZX ZY ZZ
+
+    """
+    [nps,tmp] = np.shape(velocity_gradient)
+    return np.array([
+        np.zeros([nps]), 0.5*(velocity_gradient[:,1] - velocity_gradient[:,3]), 0.5*(velocity_gradient[:,2] - velocity_gradient[:,6]),
+        0.5*(velocity_gradient[:,3] - velocity_gradient[:,1]), np.zeros([nps]), 0.5*(velocity_gradient[:,5] - velocity_gradient[:,7]),
+        0.5*(velocity_gradient[:,6] - velocity_gradient[:,2]), 0.5*(velocity_gradient[:,5] - velocity_gradient[:,7]), np.zeros([nps]),
+                     ]).T
+
+def calcTKEProduction(VelGrad,ReyStress) -> np.ndarray:
+    """Calculate tke production from velocity gradient and Reynolds stress tensor
+    
+    Interpreted as: tau_{ij} G_{ij}
+    
+    Parameters
+    ----------
+    VelGrad : np.ndarray, Assumed to of shape(n,9)
+    ReyStress: np.ndarray, Assumed to of shape(n,6)
+    """
+    
+    [nps,tmp] = np.shape(VelGrad)
+    return np.array([ np.multiply(VelGrad[:,0],ReyStress[:,0]) + np.multiply(VelGrad[:,1],ReyStress[:,3]) + 
+        np.multiply(VelGrad[:,2],ReyStress[:,4]) +  np.multiply(VelGrad[:,3],ReyStress[:,3]) + np.multiply(VelGrad[:,4],ReyStress[:,1]) +
+        np.multiply(VelGrad[:,5],ReyStress[:,5]) + np.multiply(VelGrad[:,6],ReyStress[:,4]) + np.multiply(VelGrad[:,7],ReyStress[:,5]) +
+        np.multiply(VelGrad[:,8],ReyStress[:,2])]).T
+
+
+def calcDissip(StrainRate,stsbarKeq) -> np.ndarray:
+    """Calculate tke production from velocity gradient and Reynolds stress tensor
+    
+    Interpreted as: 2*(S'_{ij} S'_{ij})
+    
+    Parameters
+    ----------
+    StrainRate : np.ndarray, Assumed to of shape(n,6)
+    stsbarKeq: np.ndarray, Assumed to of shape(n,10)
+    """
+    
+    duidxjsq_bar =  stsbarKeq[:,9]
+    duidxj_barsq = (StrainRate[:,0]**2 + StrainRate[:,1]**2 + StrainRate[:,2]**2 +
+                    2*(StrainRate[:,3]**2 + StrainRate[:,4]**2 + StrainRate[:,5]**2))
+    dissip = 2*(duidxjsq_bar - duidxj_barsq)
+        
+    return dissip
+
+
+def calcTKEAdvec(vel,dkdxi) -> np.ndarray:
+    """Calculate advection of turbulent kinetic energy
+    
+    Interpreted as: u_i k{,i}
+    
+    Parameters
+    ----------
+    vel : np.ndarray, Assumed to of shape(n,3)
+    dkdxi: np.ndarray, Assumed to of shape(n,3)
+    """    
+
+    advec = vel[:,0]*dkdxi[:,0] + vel[:,1]*dkdxi[:,1] + vel[:,2]*dkdxi[:,2]
+    
+    return advec
+    
 
 def pwlinRoots(x, y) -> np.ndarray:
     """Find roots of piecewise linear function

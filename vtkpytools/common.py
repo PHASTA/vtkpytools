@@ -75,6 +75,7 @@ def readBinaryArray(path, ncols) -> np.ndarray:
     """
     array = FortranFile(path, 'r')
     array = array.read_reals()
+    print(array.shape[0],ncols)
     nrows = int(array.shape[0]/ncols)
     array = np.reshape(array, (nrows, ncols))
 
