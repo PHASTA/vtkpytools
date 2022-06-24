@@ -81,6 +81,22 @@ def readBinaryArray(path, ncols) -> np.ndarray:
 
     return array
 
+def writeBinaryArray(path, array) -> np.ndarray:
+    """Write array to a Fortran binary file.
+
+    Parameters
+    ----------
+
+    path : Path
+        Path to Fortran binary array.
+    array : nd.array
+        Array to be written to a binary file.
+    """
+    file = FortranFile(path, 'w')
+    file.write_record(array)
+    file.close()
+
+
 def globFile(globstring, path: Path, regex=False) -> Path:
     """ Glob for one file in directory, then return.
 

@@ -14,7 +14,7 @@ from .data import calcReynoldsStressAlongStreamline, calcRSSGradientStreamline
 from .data import entirewallAlignRotationTensor, computewalltangent
 from .data import computeMomBalance
 from .data import computemetrictensor, computeTauM, computeTauC
-from ..common import globFile, readBinaryArray
+from ..common import globFile, readBinaryArray, writeBinaryArray
 from .._version import __version__
 
 
@@ -119,7 +119,7 @@ def bar2vtk_parse(args=None):
     cliparser.add_argument('--IDDESbar', help='Path to IDDESbar file(s)', type=Path, nargs='+', default=[])
     cliparser.add_argument('--stsbarKeq', help='Path to stsbarKeq file(s)', type=Path, nargs='+', default=[])    
     cliparser.add_argument('--consrvstress',
-                           help='Calculate Reynolds stress assuming conservative stsbar data',
+                           help='Calculate Reynolds stress assuming conservative stsbar data (only consv stress in stsbar)',
                            type=bool, nargs=1, default=False)
     cliparser.add_argument('--periodicity',
                            help='Flag for accounting periodicity correctly while averaging',
@@ -139,7 +139,8 @@ def bar2vtk_parse(args=None):
     cliparser.add_argument('--addpptostsbar', help='<pp> is added to stsbar', type=bool, default=False)  
     cliparser.add_argument('--addconsvstresstostsbar', help='Conservative stress are also added to stsbar', type=bool, default=False)
     cliparser.add_argument('--adduttovelbar', help='<u_{i,t}> is added to velbar', type=bool, default=False)  
-
+    cliparser.add_argument('--ncolSMRbar', help='Number of columns in SMRbar file', type=int, default=42)
+    cliparser.add_argument('--writeCombinedarray', help='Combine bar files to output a single bar file', type=bool, default=False) 
 
     # Toml Parser Setup
     tomlparser = subparser.add_parser('toml', description=TomlDescription, formatter_class=CustomFormatter,
@@ -160,7 +161,8 @@ def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
                      consrvstress=False, periodicity=True, nsons=0, loadIDDES=False, \
                      loadstsbarKeq=True, nsclr=0, streamcoord=False, barformat=1, \
                      loadSMRbar=False, loadSMRbar2=False, addpptostsbar=False, \
-                     addconsvstresstostsbar=False, adduttovelbar=False):
+                     addconsvstresstostsbar=False, adduttovelbar=False,ncolSMRbar=42, \
+                     writeCombinedarray=False):
     """Convert velbar, stsbar, stsbarKeq and iddes files into 2D vtk files
 
     See bar2vtk_commandline help documentation for more information.
@@ -210,7 +212,8 @@ def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
     returnTomlMetadata : bool
         Whether to return the metadata required for writing a toml reciept file. (Default: False)
     consrvstress : bool
-        Whether the data in the stsbar file is conservative or not. This
+        Whether the data in the stsbar file is conservative or not (only consv 
+        stress in stsbar -> stsbar should not contain both nodal and conservative fields). This
         affects both how the stsbar file is read and how the Reynolds stresses
         are calculated from them. See calcReynoldsStresses() for more
         information. (Default: False)
@@ -239,6 +242,10 @@ def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
         Conservative stress are also added to stsbar
     adduttovelbar : bool
         <u_{i,t}> is added to velbar
+    ncolSMRbar : int
+        Number of columns in SMRbar file
+    writeCombinedarray : bool
+        Combine bar files to output a single bar file
     """
 
     ## ---- Process/check script arguments
@@ -306,7 +313,9 @@ def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
         if new_file_prefix:
             vtmName = Path(new_file_prefix + '_' + str(timestepEnd[1]) + '.vtm')
         else:
-            vtmName = Path(os.path.splitext(blankvtmfile.name)[0] + '_' + str(timestepStart[0]) + '-' + str(timestepEnd[1]) + '-' + skipstr + '.vtm')           
+            vtmName = Path(os.path.splitext(blankvtmfile.name)[0] + '_' + str(timestepStart[0]) + '-' + str(timestepEnd[1]) + '-' + skipstr + '.vtm')
+            if writeCombinedarray:
+                fileCombineSuffix = str(timestepStart[0]) + '.' + str(timestepEnd[1]) + '.' + skipstr
         
 
     vtmPath = (outpath if outpath else os.getcwd()) / vtmName
@@ -324,7 +333,6 @@ def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
         
     ncolIDDESbar = 10
     ncolstsbarKeq = 10
-    ncolSMRbar = 42
 
     velbarReader = np.loadtxt if asciidata else binaryVelbar
     
@@ -387,25 +395,54 @@ def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
         print('Using data files:')
         velbarArray, velbarPaths = getBarData_Mode2(velbar, timestep, barfiledir,
                                                   barReader, 'velbar', ncolvelbar)
+        if writeCombinedarray:
+            fname = 'velbar.' + fileCombineSuffix
+            barwritePath = barfiledir / fname
+            writeBinaryArray(barwritePath,velbarArray.T)
+        
         if not velonly:
             stsbarArray, stsbarPaths = getBarData_Mode2(stsbar, timestep, barfiledir,
                                                       barReader, 'stsbar', ncolstsbar)
+            
+            if writeCombinedarray:
+                fname = 'stsbar.' + fileCombineSuffix
+                barwritePath = barfiledir / fname
+                writeBinaryArray(barwritePath,stsbarArray.T)            
             
             if loadIDDES:
                 IDDESbarArray, IDDESbarPaths = getBarData_Mode2(IDDESbar, timestep, barfiledir,
                                                       barReader, 'IDDESbar', ncolIDDESbar)  
                 
+                if writeCombinedarray:
+                    fname = 'IDDESbar.' + fileCombineSuffix
+                    barwritePath = barfiledir / fname
+                    writeBinaryArray(barwritePath,IDDESbarArray.T)
+                
             if loadstsbarKeq:
                 stsbarKeqArray, stsbarKeqPaths = getBarData_Mode2(stsbarKeq, timestep, barfiledir,
-                                                      barReader, 'stsbarKeq', ncolstsbarKeq)         
+                                                      barReader, 'stsbarKeq', ncolstsbarKeq)    
+                
+                if writeCombinedarray:
+                    fname = 'stsbarKeq.' + fileCombineSuffix
+                    barwritePath = barfiledir / fname
+                    writeBinaryArray(barwritePath,stsbarKeqArray.T)                
                 
             if loadSMRbar:
                 SMRbarArray, SMRbarPaths = getBarData_Mode2(SMRbar, timestep, barfiledir,
-                                                      barReader, 'SMRbar', ncolSMRbar)        
+                                                      barReader, 'SMRbar', ncolSMRbar)      
+                if writeCombinedarray:
+                    fname = 'SMRbar.' + fileCombineSuffix
+                    barwritePath = barfiledir / fname
+                    writeBinaryArray(barwritePath,SMRbarArray.T)                
             
             if loadSMRbar2:
                 SMRbar2Array, SMRbar2Paths = getBarData_Mode2(SMRbar2, timestep, barfiledir,
-                                                      barReader, 'SMRbar2', ncolSMRbar)                        
+                                                      barReader, 'SMRbar2', ncolSMRbar)    
+
+                if writeCombinedarray:
+                    fname = 'SMRbar2.' + fileCombineSuffix
+                    barwritePath = barfiledir / fname
+                    writeBinaryArray(barwritePath,SMRbar2Array.T)                           
                     
 
     ## ---- Load DataBlock
@@ -451,7 +488,7 @@ def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
         if addconsvstresstostsbar:
             grid['ReynoldsStressConsv'] = calcReynoldsStresses(stsbarArray[:,7:16], velbarArray, addconsvstresstostsbar)
         if streamcoord:
-            grid['ReynoldsStressStream'] = calcReynoldsStressAlongStreamline(grid['ReynoldsStress'],grid['StreamlineRotation'])
+            grid['ReynoldsStressStream'] = calcReynoldsStressAlongStreamline(grid['ReynoldsStressConsv'],grid['StreamlineRotation'])
         if loadIDDES:
             grid['IDDESbar'] = IDDESbarArray
         if loadstsbarKeq:
@@ -521,32 +558,32 @@ def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
     ## ---- Copy data from grid to wall object
     wall = wall.sample(grid)
     
-    if streamcoord:
-        RotTensor = entirewallAlignRotationTensor(wall['Normals'], np.array([0,1,0]))
-        wall['VelocityStreamline'] = calcVelocityAlongStreamline(wall['Velocity'],RotTensor)
-        if not velonly:
-            wall['ReynoldsStressStream'] = calcReynoldsStressAlongStreamline(wall['ReynoldsStress'],RotTensor)
+    # if streamcoord:
+    #     RotTensor = entirewallAlignRotationTensor(wall['Normals'], np.array([0,1,0]))
+    #     wall['VelocityStreamline'] = calcVelocityAlongStreamline(wall['Velocity'],RotTensor)
+    #     if not velonly:
+    #         wall['ReynoldsStressStream'] = calcReynoldsStressAlongStreamline(wall['ReynoldsStress'],RotTensor)
             
-        wall = wall.compute_derivative(scalars='VelocityStreamline', gradient='dvelStreamdx')
-        tangentWall = computewalltangent(wall['Normals'])
-        wall['VelocityGradientStreamline'] = calcVelocityStreamGradient(wall['dvelStreamdx'],tangentWall)
-        wall['PressureGradientStreamline'] = calcPressureStreamGradient(wall['Pres-gradient'],tangentWall)
+    #     wall = wall.compute_derivative(scalars='VelocityStreamline', gradient='dvelStreamdx')
+    #     tangentWall = computewalltangent(wall['Normals'])
+    #     wall['VelocityGradientStreamline'] = calcVelocityStreamGradient(wall['dvelStreamdx'],tangentWall)
+    #     wall['PressureGradientStreamline'] = calcPressureStreamGradient(wall['Pres-gradient'],tangentWall)
     
-        wall = wall.compute_derivative(scalars='VelocityGradientStreamline', gradient='d2usdsdx')
-        wall['VelocityHessianStreamline'] = calcVelocityStreamHessian(wall['d2usdsdx'],tangentWall)
+    #     wall = wall.compute_derivative(scalars='VelocityGradientStreamline', gradient='d2usdsdx')
+    #     wall['VelocityHessianStreamline'] = calcVelocityStreamHessian(wall['d2usdsdx'],tangentWall)
         
-        LocalRadiusCurvatureTmp = (wall['vorticity'][:,2] + wall['VelocityGradientStreamline'][:,1])/wall['VelocityStreamline'][:,0]
-        wall['LocalRadiusCurvature'] = 1/LocalRadiusCurvatureTmp
-        wall['UoverR'] = wall['VelocityStreamline'][:,0]/LocalRadiusCurvatureTmp
-        wall = wall.compute_derivative(scalars='UoverR', gradient='dUoverRdx')
-        wall['dUoverRds'] = calcPressureStreamGradient(wall['dUoverRdx'],tangentWall)
+    #     LocalRadiusCurvatureTmp = (wall['vorticity'][:,2] + wall['VelocityGradientStreamline'][:,1])/wall['VelocityStreamline'][:,0]
+    #     wall['LocalRadiusCurvature'] = 1/LocalRadiusCurvatureTmp
+    #     wall['UoverR'] = wall['VelocityStreamline'][:,0]/LocalRadiusCurvatureTmp
+    #     wall = wall.compute_derivative(scalars='UoverR', gradient='dUoverRdx')
+    #     wall['dUoverRds'] = calcPressureStreamGradient(wall['dUoverRdx'],tangentWall)
         
-        efoldingDistanceTmp = wall['VelocityGradientStreamline'][:,0]/wall['VelocityStreamline'][:,0]
-        wall['efoldingDistance'] = 1/efoldingDistanceTmp
+    #     efoldingDistanceTmp = wall['VelocityGradientStreamline'][:,0]/wall['VelocityStreamline'][:,0]
+    #     wall['efoldingDistance'] = 1/efoldingDistanceTmp
     
-        if not velonly:    
-            wall = wall.compute_derivative(scalars='ReynoldsStressStream',gradient='dRSSstreamdx')
-            wall['RSSGradientStreamline'] = calcRSSGradientStreamline(wall['dRSSstreamdx'],tangentWall)           
+    #     if not velonly:    
+    #         wall = wall.compute_derivative(scalars='ReynoldsStressStream',gradient='dRSSstreamdx')
+    #         wall['RSSGradientStreamline'] = calcRSSGradientStreamline(wall['dRSSstreamdx'],tangentWall)           
     
 
     dataBlock['grid'] = grid
@@ -614,7 +651,7 @@ def getBarData_Mode2(_bar: list, timestep_list: list, barfiledir: Path, _barRead
             else:
                 timeskip = 1
             print('Using timewindows between {} and {} and skip={}'.format(timesteps[0], timesteps[1], timeskip))
-            timeinterval.append((timesteps[1]-timesteps[0])/timeskip)
+            timeinterval.append(np.floor((timesteps[1]-timesteps[0])/timeskip + 0.4999))
             if not _bar:
                 _barPaths.append(globFile(r'^{}\.{}.{}.{}(?![\d|-])*$'.format(globname, timesteps[0], timesteps[1], timeskip), barfiledir, regex=True))
             else:
@@ -623,22 +660,22 @@ def getBarData_Mode2(_bar: list, timestep_list: list, barfiledir: Path, _barRead
             print('Finished computing timestep window')
         else:
             print('Please specify time interval in format ts0-ts1')
-            exit(0)
-        
+            exit(0)        
         count = count + 1
-        for i in range(len(_barPaths)):
-            print('\t{}'.format(_barPaths[i]))
-        _barArrays = []
-        _barArray = np.zeros(_barReader(_barPaths[i],ncols).shape)
-        for i in range(len(_barPaths)):
-            _barArrays.append(_barReader(_barPaths[i],ncols))
-            # if globname != 'SMRbar' or globname != 'SMRbar2':
-            # _barArray = _barArray + (_barArrays[i]*timeinterval[i])
-            # else:
-            _barArray = _barArray + _barArrays[i]
-
-        _barArray = _barArray/sum(timeinterval)
+        
+    for i in range(len(_barPaths)):
+        print('\t{}'.format(_barPaths[i]))
+    _barArrays = []
+    _barArray = np.zeros(_barReader(_barPaths[i],ncols).shape)
+    for i in range(len(_barPaths)):
+        _barArrays.append(_barReader(_barPaths[i],ncols))
+        # if globname != 'SMRbar' or globname != 'SMRbar2':
+        # _barArray = _barArray + (_barArrays[i]*timeinterval[i])
+        # else:
+        _barArray = _barArray + _barArrays[i]
         print(timeinterval[i])
+
+    _barArray = _barArray/sum(timeinterval)
 
     return _barArray, _barPaths
 
