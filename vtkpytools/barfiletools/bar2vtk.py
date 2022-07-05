@@ -3,6 +3,7 @@ import pytomlpp
 import pyvista as pv
 import numpy as np
 from pathlib import Path, PurePath
+import sys
 
 from .data import binaryVelbar, binaryStsbar, binaryIDDESbar, binaryVelbarSclr, binaryStsbarKeq
 from .data import binaryStsbarWithpp, binaryStsbarWithConsvStress, binarySMRbar
@@ -140,8 +141,12 @@ def bar2vtk_parse(args=None):
     cliparser.add_argument('--addconsvstresstostsbar', help='Conservative stress are also added to stsbar', type=bool, default=False)
     cliparser.add_argument('--adduttovelbar', help='<u_{i,t}> is added to velbar', type=bool, default=False)  
     cliparser.add_argument('--ncolSMRbar', help='Number of columns in SMRbar file', type=int, default=42)
-    cliparser.add_argument('--writeCombinedarray', help='Combine bar files to output a single bar file', type=bool, default=False) 
-
+    cliparser.add_argument('--writeCombinedarray', help='Combine bar files to output a single bar file', type=bool, default=False)
+    cliparser.add_argument('--writeOldBarInNewBar', help='Write the old bar files in the same format as the new bar files', type=bool, default=False)
+    cliparser.add_argument('--scaleOldBarInNewBar', help='Scaling factor when converting the old bar files in the same format as the new bar files', type=list, default=[1,1])
+    cliparser.add_argument('--CorrectionFactorBar', help='Correction factor and special treatment to bar files due mismatch in columns of relevant files', type=int, default=int)    
+    cliparser.add_argument('--createZeroArrayFiles', help='Create bar files with zero array to maintain consistency', type=bool, default=False)    
+    
     # Toml Parser Setup
     tomlparser = subparser.add_parser('toml', description=TomlDescription, formatter_class=CustomFormatter,
                                       help='Toml mode uses configuration files in the toml format')
@@ -162,7 +167,8 @@ def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
                      loadstsbarKeq=True, nsclr=0, streamcoord=False, barformat=1, \
                      loadSMRbar=False, loadSMRbar2=False, addpptostsbar=False, \
                      addconsvstresstostsbar=False, adduttovelbar=False,ncolSMRbar=42, \
-                     writeCombinedarray=False):
+                     writeCombinedarray=False, writeOldBarInNewBar=False, scaleOldBarInNewBar=[1,1], \
+                     CorrectionFactorBar=1, createZeroArrayFiles=False):
     """Convert velbar, stsbar, stsbarKeq and iddes files into 2D vtk files
 
     See bar2vtk_commandline help documentation for more information.
@@ -246,6 +252,16 @@ def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
         Number of columns in SMRbar file
     writeCombinedarray : bool
         Combine bar files to output a single bar file
+    writeOldBarInNewBar : bool
+        Write the old bar files in the same format as the new bar files
+    scaleOldBarInNewBar : list
+        Scaling factor when converting the old bar files in the same format 
+        as the new bar files
+    CorrectionFactorBar : int
+        Correction factor and special treatment to bar files due 
+        mismatch in columns of relevant files
+    createZeroArrayFiles : bool
+        Create bar files with zero array to maintain consistency
     """
 
     ## ---- Process/check script arguments
@@ -290,6 +306,14 @@ def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
             vtmName = Path(new_file_prefix + '_' + timestep + '.vtm')
         else:
             vtmName = Path(os.path.splitext(blankvtmfile.name)[0] + '_' + timestep + '.vtm')        
+            if writeOldBarInNewBar:
+                temptimestepArray = [int(x) for x in timestep.split('-')]
+                if len(temptimestepArray) == 1:
+                    timestepArray = [ts0,temptimestepArray[0]]
+                else:
+                    timestepArray = temptimestepArray
+                fileCombineSuffix = str(timestepArray[0]) + '.' + str(timestepArray[1]) + '.' + str(scaleOldBarInNewBar[1])    
+                    
     elif barformat == 2:
         print(timestep)
         skiplist = []
@@ -313,11 +337,11 @@ def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
         if new_file_prefix:
             vtmName = Path(new_file_prefix + '_' + str(timestepEnd[1]) + '.vtm')
         else:
-            vtmName = Path(os.path.splitext(blankvtmfile.name)[0] + '_' + str(timestepStart[0]) + '-' + str(timestepEnd[1]) + '-' + skipstr + '.vtm')
+            vtmName = Path(os.path.splitext(blankvtmfile.name)[0] + '_' + str(timestepStart[0]) + '-' + str(int(timestepEnd[1])) + '-' + skipstr + '.vtm')
             if writeCombinedarray:
                 fileCombineSuffix = str(timestepStart[0]) + '.' + str(timestepEnd[1]) + '.' + skipstr
         
-
+        
     vtmPath = (outpath if outpath else os.getcwd()) / vtmName
 
 
@@ -347,11 +371,11 @@ def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
     elif consrvstress:
         stsbarReader = lambda path: readBinaryArray(path, ncols=9)
     else:
-        if addpptostsbar and not addconsvstresstostsbar:
-            stsbarReader = binaryStsbarWithpp
-        elif addconsvstresstostsbar:
-            stsbarReader = binaryStsbarWithConsvStress
-        else:
+        # if addpptostsbar and not addconsvstresstostsbar:
+        #     stsbarReader = binaryStsbarWithpp
+        # elif addconsvstresstostsbar:
+        #     stsbarReader = binaryStsbarWithConsvStress
+        # else:
             stsbarReader = binaryStsbar
 
     if asciidata:
@@ -371,78 +395,160 @@ def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
         print('Using data files:')
         velbarArray, velbarPaths = getBarData(velbar, timestep, barfiledir,
                                                   velbarReader, ts0, 'velbar')
+        
+        if writeOldBarInNewBar:
+            velSumArray = np.zeros([velbarArray.shape[0],ncolvelbar])
+            velSumArray[:,0:velbarArray.shape[1]] = velbarArray*(timestepArray[1] - timestepArray[0])/(scaleOldBarInNewBar[1]/scaleOldBarInNewBar[0])  
+            fname = 'velbar.' + fileCombineSuffix
+            barwritePath = barfiledir / fname
+            writeBinaryArray(barwritePath,velSumArray)
+        
         if not velonly:
             stsbarArray, stsbarPaths = getBarData(stsbar, timestep, barfiledir,
                                                       stsbarReader, ts0, 'stsbar')
+
+            if writeOldBarInNewBar:
+                stsSumArray = np.zeros([stsbarArray.shape[0],ncolstsbar])                
+                stsSumArray[:,0:stsbarArray.shape[1]] = stsbarArray*(timestepArray[1] - timestepArray[0])/(scaleOldBarInNewBar[1]/scaleOldBarInNewBar[0])            
+                fname = 'stsbar.' + fileCombineSuffix
+                barwritePath = barfiledir / fname
+                writeBinaryArray(barwritePath,stsSumArray)                       
             
             if loadIDDES:
                 IDDESbarArray, IDDESbarPaths = getBarData(IDDESbar, timestep, barfiledir,
                                                       IDDESbarReader, ts0, 'IDDESbar')  
+
+                if writeOldBarInNewBar:
+                    IDDESSumArray = IDDESbarArray*(timestepArray[1] - timestepArray[0])/(scaleOldBarInNewBar[1]/scaleOldBarInNewBar[0])            
+                    fname = 'IDDESbar.' + fileCombineSuffix
+                    barwritePath = barfiledir / fname
+                    writeBinaryArray(barwritePath,IDDESSumArray)  
+
+            # elif createZeroArrayFiles and writeOldBarInNewBar:
+            #     IDDESSumArray = np.zeros([stsbarArray.shape[0],ncolIDDESbar])         
+            #     fname = 'IDDESbar.' + fileCombineSuffix
+            #     barwritePath = barfiledir / fname
+            #     writeBinaryArray(barwritePath,IDDESSumArray)                                
                 
             if loadstsbarKeq:
                 stsbarKeqArray, stsbarKeqPaths = getBarData(stsbarKeq, timestep, barfiledir,
                                                       stsbarKeqReader, ts0, 'stsbarKeq')         
                 
+                if writeOldBarInNewBar:
+                    stsSumKeqArray = stsbarKeqArray*(timestepArray[1] - timestepArray[0])/(scaleOldBarInNewBar[1]/scaleOldBarInNewBar[0])            
+                    fname = 'stsbarKeq.' + fileCombineSuffix
+                    barwritePath = barfiledir / fname
+                    writeBinaryArray(barwritePath,stsSumKeqArray)
+
+            elif createZeroArrayFiles and writeOldBarInNewBar:
+                stsSumKeqArray = np.zeros([stsbarArray.shape[0],ncolstsbarKeq])          
+                fname = 'stsbarKeq.' + fileCombineSuffix
+                barwritePath = barfiledir / fname
+                writeBinaryArray(barwritePath,stsSumKeqArray)                        
+                
             if loadSMRbar:
                 SMRbarArray, SMRbarPaths = getBarData(SMRbar, timestep, barfiledir,
                                                       SMRbarReader, ts0, 'SMRbar')
                 
+                if writeOldBarInNewBar:
+                    SMRSumArray = SMRbarArray*(timestepArray[1] - timestepArray[0])/(scaleOldBarInNewBar[1]/scaleOldBarInNewBar[0])            
+                    fname = 'SMRbar.' + fileCombineSuffix
+                    barwritePath = barfiledir / fname
+                    writeBinaryArray(barwritePath,SMRSumArray) 
+                    
+            elif createZeroArrayFiles and writeOldBarInNewBar:
+                SMRSumArray = np.zeros([stsbarArray.shape[0],ncolSMRbar]) 
+                fname = 'SMRbar.' + fileCombineSuffix
+                barwritePath = barfiledir / fname
+                writeBinaryArray(barwritePath,SMRSumArray)                     
+                
+                
             if loadSMRbar2:
                 SMRbar2Array, SMRbar2Paths = getBarData(SMRbar2, timestep, barfiledir,
                                                       SMRbarReader, ts0, 'SMRbar2')
+                
+                if writeOldBarInNewBar:
+                    SMRSum2Array = SMRbar2Array*(timestepArray[1] - timestepArray[0])/(scaleOldBarInNewBar[1]/scaleOldBarInNewBar[0])            
+                    fname = 'SMRbar2.' + fileCombineSuffix
+                    barwritePath = barfiledir / fname
+                    writeBinaryArray(barwritePath,SMRSum2Array.T) 
+                    
+            elif createZeroArrayFiles and writeOldBarInNewBar:
+                SMRSum2Array = np.zeros([stsbarArray.shape[0],ncolSMRbar])            
+                fname = 'SMRbar2.' + fileCombineSuffix
+                barwritePath = barfiledir / fname
+                writeBinaryArray(barwritePath,SMRSum2Array)                    
+
+        if writeOldBarInNewBar:
+            strout = "writeOldBarInNewBar flag in turned on. Exiting after writing the relevant files in: " /barwritePath
+            sys.exit(strout)        
             
     elif barformat == 2:
         print('Using data files:')
+        arrScalevelbar = range(5+nsclr,5+nsclr+3)
         velbarArray, velbarPaths = getBarData_Mode2(velbar, timestep, barfiledir,
-                                                  barReader, 'velbar', ncolvelbar)
+                                                  barReader, 'velbar', ncolvelbar, True, CorrectionFactorBar, arrScalevelbar)
         if writeCombinedarray:
+            velSumArray, velbarPaths = getBarData_Mode2(velbar, timestep, barfiledir,
+                                                  barReader, 'velbar', ncolvelbar, False, 1, [])           
             fname = 'velbar.' + fileCombineSuffix
             barwritePath = barfiledir / fname
-            writeBinaryArray(barwritePath,velbarArray.T)
+            writeBinaryArray(barwritePath,velSumArray)
         
         if not velonly:
+            arrScalestsbar = range(6,16)
             stsbarArray, stsbarPaths = getBarData_Mode2(stsbar, timestep, barfiledir,
-                                                      barReader, 'stsbar', ncolstsbar)
+                                                      barReader, 'stsbar', ncolstsbar, True, CorrectionFactorBar,arrScalestsbar)
             
             if writeCombinedarray:
+                stsSumArray, stsbarPaths = getBarData_Mode2(stsbar, timestep, barfiledir,
+                                                      barReader, 'stsbar', ncolstsbar, False, 1, [])                
                 fname = 'stsbar.' + fileCombineSuffix
                 barwritePath = barfiledir / fname
-                writeBinaryArray(barwritePath,stsbarArray.T)            
+                writeBinaryArray(barwritePath,stsSumArray)            
             
             if loadIDDES:
                 IDDESbarArray, IDDESbarPaths = getBarData_Mode2(IDDESbar, timestep, barfiledir,
-                                                      barReader, 'IDDESbar', ncolIDDESbar)  
+                                                      barReader, 'IDDESbar', ncolIDDESbar, True, CorrectionFactorBar, range(ncolIDDESbar))  
                 
                 if writeCombinedarray:
+                    IDDESSumArray, IDDESbarPaths = getBarData_Mode2(IDDESbar, timestep, barfiledir,
+                                                      barReader, 'IDDESbar', ncolIDDESbar, False, 1, [])                      
                     fname = 'IDDESbar.' + fileCombineSuffix
                     barwritePath = barfiledir / fname
-                    writeBinaryArray(barwritePath,IDDESbarArray.T)
+                    writeBinaryArray(barwritePath,IDDESSumArray)
                 
             if loadstsbarKeq:
                 stsbarKeqArray, stsbarKeqPaths = getBarData_Mode2(stsbarKeq, timestep, barfiledir,
-                                                      barReader, 'stsbarKeq', ncolstsbarKeq)    
+                                                      barReader, 'stsbarKeq', ncolstsbarKeq, True, CorrectionFactorBar, range(ncolstsbarKeq))    
                 
                 if writeCombinedarray:
+                    stsSumKeqArray, stsbarKeqPaths = getBarData_Mode2(stsbarKeq, timestep, barfiledir,
+                                                      barReader, 'stsbarKeq', ncolstsbarKeq, False, 1, [])                        
                     fname = 'stsbarKeq.' + fileCombineSuffix
                     barwritePath = barfiledir / fname
-                    writeBinaryArray(barwritePath,stsbarKeqArray.T)                
+                    writeBinaryArray(barwritePath,stsSumKeqArray)                
                 
             if loadSMRbar:
                 SMRbarArray, SMRbarPaths = getBarData_Mode2(SMRbar, timestep, barfiledir,
-                                                      barReader, 'SMRbar', ncolSMRbar)      
+                                                      barReader, 'SMRbar', ncolSMRbar, True, CorrectionFactorBar, range(ncolSMRbar))      
                 if writeCombinedarray:
+                    SMRSumArray, SMRbarPaths = getBarData_Mode2(SMRbar, timestep, barfiledir,
+                                                      barReader, 'SMRbar', ncolSMRbar, False, 1, [])                       
                     fname = 'SMRbar.' + fileCombineSuffix
                     barwritePath = barfiledir / fname
-                    writeBinaryArray(barwritePath,SMRbarArray.T)                
+                    writeBinaryArray(barwritePath,SMRSumArray)                
             
             if loadSMRbar2:
                 SMRbar2Array, SMRbar2Paths = getBarData_Mode2(SMRbar2, timestep, barfiledir,
-                                                      barReader, 'SMRbar2', ncolSMRbar)    
+                                                      barReader, 'SMRbar2', ncolSMRbar, True, CorrectionFactorBar, range(ncolSMRbar))    
 
                 if writeCombinedarray:
+                    SMRSum2Array, SMRbar2Paths = getBarData_Mode2(SMRbar2, timestep, barfiledir,
+                                                      barReader, 'SMRbar2', ncolSMRbar, False, 1, [])                        
                     fname = 'SMRbar2.' + fileCombineSuffix
                     barwritePath = barfiledir / fname
-                    writeBinaryArray(barwritePath,SMRbar2Array.T)                           
+                    writeBinaryArray(barwritePath,SMRSum2Array)                           
                     
 
     ## ---- Load DataBlock
@@ -637,7 +743,8 @@ def getBarData(_bar: list, timestep_str: str, barfiledir: Path, _barReader,
     return _barArray, _barPaths
 
 def getBarData_Mode2(_bar: list, timestep_list: list, barfiledir: Path, _barReader,
-                     globname: str, ncols: int):
+                     globname: str, ncols: int, flagDivide: bool, scaleFactor: int, 
+                     arrScale: list):
     """Get array of data from bar2vtk arguments"""
     _barPaths = []
     timeinterval = []
@@ -675,7 +782,11 @@ def getBarData_Mode2(_bar: list, timestep_list: list, barfiledir: Path, _barRead
         _barArray = _barArray + _barArrays[i]
         print(timeinterval[i])
 
-    _barArray = _barArray/sum(timeinterval)
+    if flagDivide:
+        for i in range(_barArray.shape[1]):
+            if(scaleFactor <=1 or not(i in arrScale)):
+                scaleFactor = sum(timeinterval)
+            _barArray[:,i] = _barArray[:,i]/scaleFactor
 
     return _barArray, _barPaths
 
