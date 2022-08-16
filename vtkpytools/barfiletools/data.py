@@ -476,23 +476,86 @@ def sampleDataBlockProfile(dataBlock, line_walldists, pointid=None,
 
     else:
         cutterout = vCutter(wall, cutterobj)
+
         if cutterout.points.shape[0] != 1:
             raise RuntimeError('vCutter resulted in {:d} points instead of 1.'.format(
                 cutterout.points.shape[0]))
+            wallnormal = cutterout['Normals'] if normal is None else normal
+        
+            sample_points = line_walldists[:, None] * wallnormal
+            sample_points += cutterout.points
+        
+            sample_line = pv.lines_from_points(sample_points)
+            sample_line = sample_line.sample(dataBlock['grid'])
+            sample_line['WallDistance'] = line_walldists
+        
+            sample_line = Profile(sample_line)
+            sample_line.setWallDataFromPolyDataPoint(cutterout)
 
-        wallnormal = cutterout['Normals'] if normal is None else normal
-
-        sample_points = line_walldists[:, None] * wallnormal
-        sample_points += cutterout.points
-
-        sample_line = pv.lines_from_points(sample_points)
-        sample_line = sample_line.sample(dataBlock['grid'])
-        sample_line['WallDistance'] = line_walldists
-
-        sample_line = Profile(sample_line)
-        sample_line.setWallDataFromPolyDataPoint(cutterout)
+                
+        
 
     return sample_line
+
+def sampleDataBlockPoint(dataBlock, walldist,
+                           cutterobj=None, normal=None, airfoilSide=None) -> Profile:
+    """Sample data block at a wall-normal point
+
+    Given a dataBlock containing a 'grid' and 'wall' block, this will return a
+    PolyData object that samples 'grid' at the wall distance specified in
+    walldist. This assumes that the 'wall' block has a field named
+    'Normals' containing the wall-normal vectors.
+
+    The location of the profile is defined by  specifying a vtk implicit 
+    function (such as vtk.vtkPlane) that intersects the 'wall' object. This
+    will then use the vtk.vtkCutter filter to determine the intersection.
+
+    Parameters
+    ----------
+    dataBlock : pv.MultiBlock
+        MultiBlock containing the 'grid' and 'wall' objects
+    walldist : numpy.ndarray
+        The location normal to the wall that should be sampled and returned.
+        Locations are expected to be in order.
+    cutterobj : vtk.vtkPlane
+        VTK object that defines the profile location via intersection with the
+        'wall'
+    normal : numpy.ndarray, optional
+        If given, use this vector as the wall normal.
+    airfoilSide : string, optional
+        If "pressure" or "suction" is passed, the corresponding output from the 
+        cutter will be selected - this is only valid for GustWing cases
+
+    Returns
+    -------
+    vtkpytools.Profile
+    """
+
+    wall = dataBlock['wall']
+
+    
+    cutterout = vCutter(wall, cutterobj)
+    # Find side of the airfoil - Gust Wing specific
+    sortedPoints = np.argsort(cutterout.points[:, 1])
+    if airfoilSide == 'pressure':
+        index = sortedPoints[1]
+    elif airfoilSide == 'suction':
+        index = sortedPoints[0]
+    else: 
+        raise RuntimeError('Invalid input into airfoilSide')
+        
+    wallnormal = cutterout['Normals'][index] if normal is None else normal
+
+    sample_points = walldist * wallnormal
+    sample_points += cutterout.points[index]
+
+    # sample_line = pv.lines_from_points(sample_points)
+    sample_points = pv.PolyData(sample_points)
+    sample_points = sample_points.sample(dataBlock['grid'])
+    # sample_points['WallDistance'] = walldist         
+        
+
+    return sample_points
 
 def wallAlignRotationTensor(wallnormal, cart_normal, plane='xy') -> np.ndarray:
     """Create rotation tensor for wall alligning quantities
@@ -1133,3 +1196,28 @@ def computeTauSUPG(uj, Li, tauM) -> np.ndarray:
     tauSUPG[:,8] = tauM*Li[:,2]*uj[:,2]
     
     return tauSUPG
+
+def findWallDist(grid, wall):
+    """Calculates the  distance to the nearest wall point from every point on the grid
+    
+    Parameters
+    ----------
+    grid : vkt dataBlock object
+        All gridpoints on the domain
+    wall : vtk daraBlock object
+        Wall points in the the domain
+    Returns
+    -------
+    d2Wall : Distance from each point on the grid to the nearrest wall point
+    """
+
+    
+    d2wall = np.zeros(grid.n_points)
+    d2wallpnt = np.zeros(grid.n_points)
+    
+    for i in range(wall.n_points):
+        d2wallpnt = np.linalg.norm(grid.points - wall.points[i,:], axis=1)
+        d2wall = np.minimum(d2wall, d2wallpnt)
+        
+        
+    return d2wall

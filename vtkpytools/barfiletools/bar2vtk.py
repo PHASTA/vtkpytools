@@ -14,6 +14,7 @@ from .data import calcReynoldsStressAlongStreamline, calcRSSGradientStreamline
 from .data import entirewallAlignRotationTensor, computewalltangent
 from .data import computeMomBalance
 from .data import computemetrictensor, computeTauM, computeTauC
+from .data import findWallDist
 from ..common import globFile, readBinaryArray, writeBinaryArray
 from .._version import __version__
 
@@ -141,6 +142,8 @@ def bar2vtk_parse(args=None):
     cliparser.add_argument('--adduttovelbar', help='<u_{i,t}> is added to velbar', type=bool, default=False)  
     cliparser.add_argument('--ncolSMRbar', help='Number of columns in SMRbar file', type=int, default=42)
     cliparser.add_argument('--writeCombinedarray', help='Combine bar files to output a single bar file', type=bool, default=False) 
+    cliparser.add_argument('--subtractBars', help='Subract bar files to create a sub-window', type=bool, default=False) 
+    cliparser.add_argument('--d2Wall', help='Calculate distance to nearest wall point', type=bool, default=False) 
 
     # Toml Parser Setup
     tomlparser = subparser.add_parser('toml', description=TomlDescription, formatter_class=CustomFormatter,
@@ -162,7 +165,7 @@ def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
                      loadstsbarKeq=True, nsclr=0, streamcoord=False, barformat=1, \
                      loadSMRbar=False, loadSMRbar2=False, addpptostsbar=False, \
                      addconsvstresstostsbar=False, adduttovelbar=False,ncolSMRbar=42, \
-                     writeCombinedarray=False):
+                     writeCombinedarray=False, subtractBars=False, d2Wall=False):
     """Convert velbar, stsbar, stsbarKeq and iddes files into 2D vtk files
 
     See bar2vtk_commandline help documentation for more information.
@@ -246,6 +249,14 @@ def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
         Number of columns in SMRbar file
     writeCombinedarray : bool
         Combine bar files to output a single bar file
+    subtractBars : bool
+        Subracts two (and only two) bar files to create a sub-window using the formatting
+        timerange1 - timerange2 = subrange, or in practice:
+            The input ['ts1-ts3','ts1-ts2'] ouputs the window ts2-ts3
+            -> Only implemented for new bar file format
+    d2Wall : bool
+        Calculates distance fomr each grid point to the nearest wall point
+        
     """
 
     ## ---- Process/check script arguments
@@ -289,7 +300,9 @@ def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
         if new_file_prefix:
             vtmName = Path(new_file_prefix + '_' + timestep + '.vtm')
         else:
-            vtmName = Path(os.path.splitext(blankvtmfile.name)[0] + '_' + timestep + '.vtm')        
+            vtmName = Path(os.path.splitext(blankvtmfile.name)[0] + '_' + timestep + '.vtm')     
+        if subtractBars:
+            raise RuntimeError('Subracting bar files is not yet implemented for bar format 1')
     elif barformat == 2:
         print(timestep)
         skiplist = []
@@ -313,7 +326,13 @@ def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
         if new_file_prefix:
             vtmName = Path(new_file_prefix + '_' + str(timestepEnd[1]) + '.vtm')
         else:
-            vtmName = Path(os.path.splitext(blankvtmfile.name)[0] + '_' + str(timestepStart[0]) + '-' + str(timestepEnd[1]) + '-' + skipstr + '.vtm')
+            if subtractBars:
+                if timestepEnd[1] > timestepStart[1]:
+                    raise RuntimeError('Check your window ordering for subwindowing! Formatting should be: \n', \
+                                       '[\'whole window\', \'subwindow to subtract\']')
+                vtmName = Path(os.path.splitext(blankvtmfile.name)[0] + '_' + str(timestepEnd[1]) + '-' + str(timestepStart[1]) + '-' + skipstr + '.vtm')
+            else:
+                vtmName = Path(os.path.splitext(blankvtmfile.name)[0] + '_' + str(timestepStart[0]) + '-' + str(timestepEnd[1]) + '-' + skipstr + '.vtm')
             if writeCombinedarray:
                 fileCombineSuffix = str(timestepStart[0]) + '.' + str(timestepEnd[1]) + '.' + skipstr
         
@@ -394,7 +413,7 @@ def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
     elif barformat == 2:
         print('Using data files:')
         velbarArray, velbarPaths = getBarData_Mode2(velbar, timestep, barfiledir,
-                                                  barReader, 'velbar', ncolvelbar)
+                                                  barReader, 'velbar', ncolvelbar, subtractBars)
         if writeCombinedarray:
             fname = 'velbar.' + fileCombineSuffix
             barwritePath = barfiledir / fname
@@ -402,7 +421,7 @@ def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
         
         if not velonly:
             stsbarArray, stsbarPaths = getBarData_Mode2(stsbar, timestep, barfiledir,
-                                                      barReader, 'stsbar', ncolstsbar)
+                                                      barReader, 'stsbar', ncolstsbar, subtractBars)
             
             if writeCombinedarray:
                 fname = 'stsbar.' + fileCombineSuffix
@@ -411,7 +430,7 @@ def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
             
             if loadIDDES:
                 IDDESbarArray, IDDESbarPaths = getBarData_Mode2(IDDESbar, timestep, barfiledir,
-                                                      barReader, 'IDDESbar', ncolIDDESbar)  
+                                                      barReader, 'IDDESbar', ncolIDDESbar, subtractBars)  
                 
                 if writeCombinedarray:
                     fname = 'IDDESbar.' + fileCombineSuffix
@@ -420,7 +439,7 @@ def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
                 
             if loadstsbarKeq:
                 stsbarKeqArray, stsbarKeqPaths = getBarData_Mode2(stsbarKeq, timestep, barfiledir,
-                                                      barReader, 'stsbarKeq', ncolstsbarKeq)    
+                                                      barReader, 'stsbarKeq', ncolstsbarKeq, subtractBars)    
                 
                 if writeCombinedarray:
                     fname = 'stsbarKeq.' + fileCombineSuffix
@@ -429,7 +448,7 @@ def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
                 
             if loadSMRbar:
                 SMRbarArray, SMRbarPaths = getBarData_Mode2(SMRbar, timestep, barfiledir,
-                                                      barReader, 'SMRbar', ncolSMRbar)      
+                                                      barReader, 'SMRbar', ncolSMRbar, subtractBars)      
                 if writeCombinedarray:
                     fname = 'SMRbar.' + fileCombineSuffix
                     barwritePath = barfiledir / fname
@@ -437,7 +456,7 @@ def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
             
             if loadSMRbar2:
                 SMRbar2Array, SMRbar2Paths = getBarData_Mode2(SMRbar2, timestep, barfiledir,
-                                                      barReader, 'SMRbar2', ncolSMRbar)    
+                                                      barReader, 'SMRbar2', ncolSMRbar, subtractBars)    
 
                 if writeCombinedarray:
                     fname = 'SMRbar2.' + fileCombineSuffix
@@ -552,6 +571,10 @@ def bar2vtk_function(blankvtmfile: Path, barfiledir: Path, timestep: str, \
             grid['VelStrain'] = calcvelStrain(stsbarKeqArray,velbarArray,grid['gradient'])             
             grid = grid.compute_derivative(scalars='VelStrain', gradient='VelStrainDeriv')
 
+    if d2Wall:
+        print('Computing d2Wall!')
+        grid['d2Wall'] = findWallDist(grid, wall)
+        
     print(grid.array_names)
 
         
@@ -637,11 +660,15 @@ def getBarData(_bar: list, timestep_str: str, barfiledir: Path, _barReader,
     return _barArray, _barPaths
 
 def getBarData_Mode2(_bar: list, timestep_list: list, barfiledir: Path, _barReader,
-                     globname: str, ncols: int):
+                     globname: str, ncols: int, subtractBars: bool):
     """Get array of data from bar2vtk arguments"""
     _barPaths = []
     timeinterval = []
     count = 0
+    if subtractBars:
+        if len(timestep_list) != 2:
+            raise RuntimeError('Only two timesteps can be subtracted')
+            
     for timestep_str in timestep_list:
         if '-' in timestep_str:
             timesteptmp = [int(x) for x in timestep_str.split('-')]
@@ -667,15 +694,23 @@ def getBarData_Mode2(_bar: list, timestep_list: list, barfiledir: Path, _barRead
         print('\t{}'.format(_barPaths[i]))
     _barArrays = []
     _barArray = np.zeros(_barReader(_barPaths[i],ncols).shape)
-    for i in range(len(_barPaths)):
-        _barArrays.append(_barReader(_barPaths[i],ncols))
-        # if globname != 'SMRbar' or globname != 'SMRbar2':
-        # _barArray = _barArray + (_barArrays[i]*timeinterval[i])
-        # else:
-        _barArray = _barArray + _barArrays[i]
-        print(timeinterval[i])
-
-    _barArray = _barArray/sum(timeinterval)
+    if subtractBars:
+        for i in range(len(_barPaths)):
+            _barArrays.append(_barReader(_barPaths[i],ncols))
+        _barArray = _barArrays[0] - _barArrays[1]
+        subtimeInterval = (timeinterval[0]-timeinterval[1])
+        _barArray = _barArray/subtimeInterval
+        print('{} - {}'.format(_barPaths[0], _barPaths[1]))
+        print(subtimeInterval)
+    else:
+        for i in range(len(_barPaths)):
+            _barArrays.append(_barReader(_barPaths[i],ncols))
+            # if globname != 'SMRbar' or globname != 'SMRbar2':
+            # _barArray = _barArray + (_barArrays[i]*timeinterval[i])
+            # else:
+            _barArray = _barArray + _barArrays[i]
+            print(timeinterval[i])
+        _barArray = _barArray/sum(timeinterval)
 
     return _barArray, _barPaths
 
