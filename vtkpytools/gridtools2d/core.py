@@ -3,6 +3,7 @@ import vtk
 from pathlib import Path
 from scipy.spatial import Delaunay
 import pyvista as pv
+from packaging import version
 
 def form2DGrid(coords_array, connectivity_array=None) -> pv.UnstructuredGrid:
     """Create 2D VTK UnstructuredGrid from coordinates and connectivity
@@ -104,7 +105,6 @@ def computeEdgeNormals(edges, domain_point) -> pv.PolyData:
 
     """
     normals = np.zeros((edges.n_cells, 3))
-    i = 0
         # Indices of 2 points forming line cell
     indices = edges.lines.reshape((edges.n_cells, 3))[:,1:3]
     pnts1 = edges.points[indices[:,0], :]
@@ -122,6 +122,10 @@ def computeEdgeNormals(edges, domain_point) -> pv.PolyData:
     normals = np.einsum('ij,i->ij',normals,inOrOut)
     normals = np.einsum('ij,i->ij', normals, np.linalg.norm(normals, axis=1)**-1)
 
-    edges.cell_arrays['Normals'] = normals
+    if version.parse(pv.__version__) < version.parse('0.37.0'):
+        edges.cell_arrays['Normals'] = normals
+    else:
+        edges.cell_data['Normals'] = normals
+
     return edges
 

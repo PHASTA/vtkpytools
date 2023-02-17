@@ -111,13 +111,13 @@ def seriesDiffLimiter(series: np.ndarray, dx=None, magnitude=None) -> np.ndarray
         raise RuntimeError('Either dx or magnitude must be set')
     if dx:
         dxs = np.diff(series)
-        index = np.ceil( pwlinRoots(np.arange(dxs.size), dxs - dx)[0] ).astype(np.int)
+        index = np.ceil( pwlinRoots(np.arange(dxs.size), dxs - dx)[0] ).astype(int)
     else:
-        index = np.ceil( pwlinRoots(np.arange(series.size), series - magnitude)[0] ).astype(np.int)
+        index = np.ceil( pwlinRoots(np.arange(series.size), series - magnitude)[0] ).astype(int)
         dx = series[index] - series[index-1]
 
     fill_distance = np.max(series) - series[index]
-    fill_size = np.ceil(fill_distance / dx).astype(np.int)
+    fill_size = np.ceil(fill_distance / dx).astype(int)
     fill_array = np.arange(1, fill_size+1)*dx + series[index]
 
     new_series = np.zeros(index + fill_size + 1)
