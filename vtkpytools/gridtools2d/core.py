@@ -75,7 +75,11 @@ def form2DGrid(coords_array, connectivity_array=None) -> pv.UnstructuredGrid:
             offsets[0] = 0
             pass
 
-    grid = pv.UnstructuredGrid(offsets, connectivity_array, cell_types, coords_array)
+    if version.parse(pv.__version__) < version.parse('0.37.0'):
+        grid = pv.UnstructuredGrid(offsets, connectivity_array, cell_types, coords_array)
+    else:
+        grid = pv.UnstructuredGrid(connectivity_array, cell_types, coords_array)
+
 
     return grid
 
