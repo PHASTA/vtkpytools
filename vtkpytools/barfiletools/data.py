@@ -4,6 +4,7 @@ import pyvista as pv
 from ..common import readBinaryArray, Profile, vCutter, unstructuredToPoly
 from ..numtools import makeRotationTensor
 import warnings
+from typing import Callable, Optional
 
 def binaryVelbar(velbar_path) -> np.ndarray:
     """Get velbar array from binary file.
@@ -185,7 +186,8 @@ def compute_vorticity(dataset, scalars, vorticity_name='vorticity'):
     return pv.filters._get_output(alg)
 
 def sampleDataBlockProfile(dataBlock, line_walldists, pointid=None,
-                           cutterobj=None, normal=None, choosePoint=None) -> Profile:
+                           cutterobj=None, normal=None,
+                           choosePoint: Optional[Callable[...,int]] = None) -> Profile:
     """Sample data block over a wall-normal profile
 
     Given a dataBlock containing a 'grid' and 'wall' block, this will return a
