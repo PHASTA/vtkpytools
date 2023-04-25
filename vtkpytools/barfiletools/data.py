@@ -1,7 +1,7 @@
 import numpy as np
 import vtk
 import pyvista as pv
-from ..common import readBinaryArray, Profile, vCutter
+from ..common import readBinaryArray, Profile, vCutter, unstructuredToPoly
 from ..numtools import makeRotationTensor
 import warnings
 
@@ -185,7 +185,7 @@ def compute_vorticity(dataset, scalars, vorticity_name='vorticity'):
     return pv.filters._get_output(alg)
 
 def sampleDataBlockProfile(dataBlock, line_walldists, pointid=None,
-                           cutterobj=None, normal=None) -> Profile:
+                           cutterobj=None, normal=None, choosePoint=None) -> Profile:
     """Sample data block over a wall-normal profile
 
     Given a dataBlock containing a 'grid' and 'wall' block, this will return a
@@ -213,6 +213,9 @@ def sampleDataBlockProfile(dataBlock, line_walldists, pointid=None,
         'wall'
     normal : numpy.ndarray, optional
         If given, use this vector as the wall normal.
+    choosePoint : function which selects which point to return from the cutter if 
+        multiple are found
+
 
     Returns
     -------
@@ -240,8 +243,12 @@ def sampleDataBlockProfile(dataBlock, line_walldists, pointid=None,
     else:
         cutterout = vCutter(wall, cutterobj)
         if cutterout.points.shape[0] != 1:
-            raise RuntimeError('vCutter resulted in {:d} points instead of 1.'.format(
-                cutterout.points.shape[0]))
+            if choosePoint == None:
+                raise RuntimeError('vCutter resulted in {:d} points instead of 1.'.format(
+                    cutterout.points.shape[0]))
+            else:
+                index = choosePoint(cutterout)
+                cutterout = unstructuredToPoly(cutterout.extract_points(index))
 
         wallnormal = cutterout['Normals'] if normal is None else normal
 
