@@ -215,9 +215,8 @@ def sampleDataBlockProfile(dataBlock, line_walldists, pointid=None,
         'wall'
     normal : numpy.ndarray, optional
         If given, use this vector as the wall normal.
-    choosePoint : function which selects which point to return from the cutter if 
-        multiple are found
-
+    choosePoint : Callable(pv.PolyData) -> int, optional
+        function which selects which point to return from the cutter if multiple are found
 
     Returns
     -------
