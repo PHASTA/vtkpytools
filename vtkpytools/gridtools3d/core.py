@@ -2,6 +2,7 @@ import numpy as np
 import vtk
 from pathlib import Path
 import pyvista as pv
+from packaging import version
 
 
 def form3DGrid(coords_array, connectivity_array) -> pv.UnstructuredGrid:
@@ -67,6 +68,9 @@ def form3DGrid(coords_array, connectivity_array) -> pv.UnstructuredGrid:
         offsets = np.roll(np.cumsum(offset+1), 1)
         offsets[0] = 0
 
-    grid = pv.UnstructuredGrid(offsets, connectivity_array, cell_types, coords_array)
+    if version.parse(pv.__version__) < version.parse('0.37.0'):
+        grid = pv.UnstructuredGrid(offsets, connectivity_array, cell_types, coords_array)
+    else:
+        grid = pv.UnstructuredGrid(connectivity_array, cell_types, coords_array)
 
     return grid
