@@ -245,7 +245,7 @@ def sampleDataBlockProfile(dataBlock, line_walldists, pointid=None,
         cutterout = vCutter(wall, cutterobj)
         if cutterout.points.shape[0] != 1:
             if choosePoint == None:
-                raise RuntimeError('vCutter resulted in {:d} points instead of 1.'.format(
+                raise RuntimeError('vCutter resulted in {:d} points instead of 1. Use choosePoint to clarify which point should be used.'.format(
                     cutterout.points.shape[0]))
             else:
                 index = choosePoint(cutterout)
