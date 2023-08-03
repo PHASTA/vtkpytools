@@ -4,6 +4,7 @@ import numpy as np
 from scipy.io import FortranFile
 from pathlib import Path
 import re
+from packaging import version
 
 def unstructuredToPoly(unstructured_grid):
     """Convert vtk.UnstructruedGrid to vtk.PolyData"""
@@ -59,7 +60,10 @@ class Profile(pv.PolyData):
         if PolyPoint.n_points != 1:
             raise RuntimeError('Profile should only have 1 wallpoint, {:d} given'.format(
                                                                     PolyPoint.n_points))
-        self.walldata = dict(PolyPoint.point_arrays)
+        if version.parse(pv.__version__) < version.parse('0.37.0'):
+            self.walldata = dict(PolyPoint.point_arrays)
+        else:
+            self.walldata = dict(PolyPoint.point_data)
         self.walldata['Point'] = PolyPoint.points
 
 def readBinaryArray(path, ncols) -> np.ndarray:
